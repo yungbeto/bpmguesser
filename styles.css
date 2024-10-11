@@ -1,0 +1,1111 @@
+:root {
+  --background-color: #fafafa;
+  --text-color: #1e1e1e;
+  --border-color: #1e1e1e;
+  --button-color: #1e1e1e;
+  --button-text-color: #fafafa;
+  --input-background: #fafafa;
+  --active-color: #1e1e1e;
+  --inactive-color: #fafafa;
+  --gray: #737373;
+  --light-gray: #dbdbdb;
+  --very-light-gray: #f0f0f0;
+}
+
+/* Hide spin buttons in Webkit browsers (Chrome, Safari, Edge) */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spin buttons in Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Hide spin buttons in Internet Explorer and old Edge */
+input[type='number'] {
+  -ms-appearance: textfield;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  transition: background-color 0.5s ease, color 0.5s ease;
+  overscroll-behavior: none;
+  line-height: 1.6;
+  overflow-y: auto; /* Allow vertical scrolling */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* Links */
+a {
+  color: var(--gray);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--gray);
+  text-decoration: underline;
+}
+
+h2 {
+  font-weight: 400;
+}
+
+/* General Styles for Screens */
+.screen {
+  display: none; /* Hide all screens by default */
+  overflow-y: auto; /* Allow vertical scrolling if content exceeds screen height */
+  height: 100vh;
+  transition: opacity 0.5s ease-in-out; /* Add transition for opacity */
+  opacity: 0; /* Start with opacity 0 */
+}
+
+.screen.active {
+  display: flex; /* Show the active screen as a flex container */
+  flex-direction: column;
+  opacity: 1; /* Set opacity to 1 when active */
+}
+
+/* Toolbar */
+.toolbar {
+  padding: 8px 16px;
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1rem;
+  color: var(--text-color);
+  font-weight: 400;
+}
+
+/* Container for Home and End Screens */
+.home-container,
+.end-container {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.main-section {
+  flex: 1;
+  padding: 64px 40px 16px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0;
+  border-right: 1px solid var(--border-color);
+  height: 100%;
+  width: 428px;
+  min-width: 428px;
+}
+
+.cta-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.sidebar {
+  padding: 0px;
+  box-sizing: border-box;
+  width: 100%;
+  background-color: var(--active-color);
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--background-color);
+}
+
+.high-score-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  width: 100%;
+  color: var(--background-color);
+}
+
+/* Update the high score title styles */
+.high-score-title,
+.sidebar h2 {
+  color: var(--background-color);
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 40px;
+  letter-spacing: -1px;
+  margin: 0;
+  padding: 64px 40px;
+  width: 100%;
+  border-bottom: 1px solid var(--background-color);
+}
+
+.high-score-check-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: auto;
+}
+
+.high-score-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-color);
+  margin-bottom: 0px;
+}
+
+.high-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.high-score-list-item {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Hero Title */
+.hero-title {
+  color: var(--text-color);
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 40px; /* 175% */
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.hero-subtitle {
+  color: var(--gray);
+  font-family: Inter;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 28px;
+  margin: 8px 0 0 0;
+  max-width: 80%;
+}
+
+.hero-title-handjet {
+  font-size: 2rem;
+  line-height: 2rem;
+  font-weight: 400; /* Medium weight for contrast */
+  margin: 0;
+}
+
+/* CTA Button */
+.cta-button {
+  display: flex;
+  width: 100%;
+  padding: 24px 48px;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 88px;
+  background: #1e1e1e;
+}
+
+.small-link {
+  font-size: 14px;
+  color: var(--gray);
+  width: 100%;
+  text-align: center;
+}
+
+/* High Scores List */
+#high-scores-list,
+#high-scores-list-end {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color: var(--active-color);
+  color: var(--background-color);
+}
+
+#high-scores-list li,
+#high-scores-list-end li {
+  font-size: 1.2rem;
+}
+
+/* Game Info */
+.game-info {
+  color: var(--text-color);
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 56px; /* 175% */
+  margin: 0;
+}
+
+/* Metronome Visual */
+#metronome-visual {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin: 0 15px;
+  border: 2px solid var(--border-color);
+  transition: all 0.1s ease;
+}
+
+.circle.active {
+  background-color: var(--active-color);
+  transform: scale(1.2);
+}
+
+.input-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative; /* Add this */
+}
+
+/* Input Styles */
+.input {
+  background-color: var(--input-background);
+  border: none;
+  padding: 10px 15px; /* Add some padding */
+  color: var(--text-color);
+  text-align: center;
+  font-family: Inter, sans-serif;
+  font-size: clamp(
+    3rem,
+    15vw,
+    20rem
+  ); /* Adjusted for better mobile visibility */
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.2; /* Relative line height */
+  letter-spacing: -0.05em;
+  margin: 20px 0;
+  width: 100%; /* Ensure full width */
+  max-width: 100%; /* Ensure it doesn't overflow */
+  max-height: 40vh; /* Limit height to prevent overflow when keyboard is open */
+  transition: all 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border: none;
+}
+
+/* Add this to your existing .input styles or create a new rule */
+.input::placeholder {
+  color: var(
+    --light-gray
+  ); /* Change this from 'transparent' to the desired color */
+  opacity: 1; /* Ensure the placeholder is visible */
+}
+
+/* For older browsers, you might need these as well */
+.input::-webkit-input-placeholder {
+  color: var(--light-gray);
+}
+
+.input::-moz-placeholder {
+  color: var(--light-gray);
+}
+
+.input:-ms-input-placeholder {
+  color: var(--light-gray);
+}
+
+.input:-moz-placeholder {
+  color: var(--light-gray);
+}
+
+.input-label {
+  color: var(--light-gray);
+  text-align: center;
+  font-family: Inter;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+  width: 100%; /* Full width */
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Buttons */
+.button {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--button-color);
+  color: var(--button-text-color);
+  border: 2px solid var(--border-color);
+  padding: 24px 24px;
+  font-size: 1.2rem;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  height: fit-content;
+  font-weight: 400;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.button:hover {
+  opacity: 0.8;
+  background-color: #333333;
+}
+
+.button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.play-again {
+  width: 100%;
+}
+
+#submit-guess {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Countdown and Intermission */
+.countdown,
+.intermission {
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  color: var(--background-color);
+}
+
+.centered-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh; /* Ensure it fills the parent container */
+}
+
+/* Intermission Text Styles */
+.intermission-exclamation {
+  font-size: 1.2rem;
+  font-weight: 400;
+  text-align: center;
+  animation: pulseWithColor 0.5s infinite alternate;
+}
+
+.intermission-subtitle {
+  font-size: 1rem;
+  font-weight: normal;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Round Results */
+.round-results-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 100%;
+  gap: 16px;
+  margin: 24px 0 0 0;
+}
+
+.round-result {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--light-gray);
+  width: 100%;
+  padding-bottom: 16px;
+  gap: 8px;
+}
+
+.round-result:last-child {
+  border-bottom: none;
+}
+
+.round-result-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0px;
+  align-items: fle;
+  width: auto;
+}
+
+.round-result-title {
+  font-size: 0.8rem;
+  line-height: 16px;
+  font-weight: 400;
+  margin: 0;
+  color: var(--gray);
+}
+
+.round-result-score {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.result-details {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 33%;
+}
+
+.result-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--gray);
+  margin-bottom: 0px;
+}
+
+.result-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 5% auto;
+  border: 1px solid var(--border-color);
+  width: 80%;
+  height: 80%;
+}
+
+.modal-content p {
+  font-size: 18px;
+  line-height: 32px;
+  margin-bottom: 24px;
+  max-width: 480px;
+  color: var(--text-color);
+}
+
+.modal-content h3 {
+  margin-top: 40px;
+}
+
+.scoring-explanation {
+  margin: 24px;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  margin-right: 16px;
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+}
+
+/* End Game Button */
+#end-game {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background-color: transparent;
+  border: none;
+  border-radius: 48px;
+  display: flex; /* Change from 'none' to 'flex' */
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically */
+  height: 32px;
+  width: 32px;
+  padding: 0; /* Remove any default padding */
+  cursor: pointer; /* Add cursor pointer for better UX */
+}
+
+/* Media Queries */
+@media (max-width: 800px) {
+  .main-section {
+    height: 90vh; /* Set height to 90vh */
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 48px 24px 8px 24px;
+  }
+
+  .end-container {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .sidebar {
+    height: 100%; /* Allow the sidebar to expand as needed */
+    overflow-y: visible; /* Ensure no internal scroll */
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    line-height: 2.2rem;
+  }
+
+  .cta-button {
+    color: #ecf1f6;
+    font-family: Inter;
+    font-size: 20px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 32px; /* 233.333% */
+    border-radius: 64px;
+  }
+
+  .countdown,
+  .intermission {
+    font-size: 1.4rem;
+    color: var(--background-color);
+  }
+
+  .round-result {
+    width: 100%;
+    margin: 0 auto 0.5rem auto;
+  }
+
+  .round-results-container {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .input.bpm-input {
+    width: 100%;
+
+    font-size: 8rem;
+  }
+
+  .input {
+    font-size: clamp(3rem, 20vw, 15rem); /* Larger on mobile */
+    max-height: 30vh; /* Slightly smaller max-height for mobile */
+  }
+
+  .round-result-title {
+    font-size: 0.8rem;
+  }
+
+  .result-item {
+    font-size: 0.9rem;
+  }
+
+  .result-details {
+    flex-direction: row;
+  }
+}
+
+.final-score-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.final-score-label {
+  color: var(--gray);
+  margin-bottom: 4px;
+}
+
+.final-score {
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Game Area */
+#game-area {
+  display: none; /* Hide by default */
+  height: 100vh;
+  max-height: 100vh;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+#game-area.active {
+  display: flex; /* Show when active */
+}
+
+.game-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 48px;
+}
+
+.timer {
+  color: var(--gray);
+  text-align: center;
+  font-family: Inter;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px; /* 150% */
+  letter-spacing: -0.96px;
+  margin: 0;
+}
+
+.high-score-item {
+  padding: 16px 24px 16px 40px;
+  border-bottom: 1px solid var(--background-color);
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--background-color);
+  height: 48px;
+}
+
+.high-score-item:last-child {
+  border-bottom: none;
+}
+
+.high-score-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.high-score-number {
+  font-weight: 500;
+  min-width: 24px;
+
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--gray);
+}
+
+.high-score-name-url {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin: 0;
+}
+
+.high-score-name {
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.high-score-url-container {
+  max-height: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.high-score-url {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--gray);
+  text-decoration: none;
+  margin: 0;
+}
+
+.high-score-url:hover {
+  text-decoration: underline;
+}
+
+.high-score-score {
+  font-weight: 400;
+}
+
+@media (max-width: 800px) {
+  .high-score-item {
+    padding: 12px 16px;
+  }
+
+  .high-score-number {
+    min-width: 20px;
+  }
+
+  .high-score-name {
+    font-size: 16px;
+  }
+
+  .high-score-url {
+    font-size: 12px;
+  }
+
+  .high-score-score {
+    font-size: 16px;
+  }
+}
+
+/* Add a new class for the high scores container */
+.high-scores-container {
+  background-color: var(--active-color);
+  color: var(--background-color);
+}
+
+/* Update the high score item styles */
+.high-score-name,
+.high-score-score {
+  color: var(--background-color);
+}
+
+/* End Screen */
+.end-screen-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* High Score Check Screen */
+#high-score-check {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center the content vertically */
+  padding: 40px;
+
+  height: 100vh;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+#high-score-check .score-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#high-score-check .score-label {
+  color: var(--gray);
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+#high-score-check .final-score {
+  color: var(--text-color);
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 40px;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+#high-score-check .subtitle {
+  color: var(--gray);
+  font-family: Inter;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 28px;
+  margin: 8px 0 0 0;
+}
+
+#no-high-score-area {
+  height: 100%;
+  justify-content: space-between;
+}
+
+#high-score-input-area,
+#no-high-score-area {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 480px; /* Limit the width for larger screens */
+  margin: 0 auto; /* Center the form horizontally */
+}
+
+#high-score-input-area .input,
+#player-url-check {
+  width: 100%;
+  font-size: 1.5rem;
+  line-height: 24px;
+  padding: 8px 0;
+  margin-bottom: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  background-color: transparent;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+#high-score-input-area .input:focus,
+#player-url-check:focus {
+  outline: none;
+  border-bottom-color: var(--active-color);
+}
+
+.input-label {
+  color: var(--gray);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.input::placeholder {
+  color: var(--light-gray);
+}
+
+/* Adjust button styles */
+#submit-score-check {
+  margin-top: 24px;
+}
+
+#skip-high-score {
+  margin-top: 8px;
+  background-color: var(--gray);
+  color: var(--background-color);
+  border-color: var(--gray);
+}
+
+@media (max-width: 800px) {
+  #high-score-check {
+    padding: 40px 24px;
+  }
+
+  #high-score-check .final-score {
+    font-size: 28px;
+  }
+
+  #high-score-check .subtitle {
+    font-size: 18px;
+  }
+
+  #high-score-input-area .input,
+  #player-url-check {
+    font-size: 1.5rem;
+    line-height: 2.5rem;
+  }
+
+  #submit-score-check,
+  #skip-high-score,
+  #continue-to-final {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.end-screen-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 16px;
+  height: 100%;
+  width: 100%;
+}
+
+body.dark-mode {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+body.dark-mode .button {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.dark-mode .input {
+  background-color: #000000;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+@media (max-width: 800px) {
+  body,
+  html {
+    overflow-y: scroll;
+  }
+
+  .screen {
+    height: auto;
+    overflow-x: hidden;
+  }
+
+  .high-score-title,
+  .sidebar h2 {
+    color: var(--background-color);
+    font-family: Inter;
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 48px;
+    letter-spacing: -1px;
+    margin: 0;
+    padding: 24px 16px;
+    width: 100%;
+    border-bottom: 1px solid var(--background-color);
+  }
+
+  .high-score-left {
+    gap: 0px;
+  }
+
+  .home-container,
+  .end-container {
+    flex-direction: column;
+    min-height: 100%;
+    height: 100%;
+  }
+  .sidebar {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+  }
+  .main-section {
+    min-height: 98vh;
+    min-width: 100%;
+  }
+
+  .final-score-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+  .game-info {
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    width: 100%;
+  }
+  #game-area {
+    max-height: 100vh;
+    padding: 0;
+  }
+  .game-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 24px 16px;
+  }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    border: 1px solid var(--border-color);
+    max-width: 90%;
+    height: auto;
+  }
+
+  .modal-content p {
+    font-size: 16px;
+    line-height: 24px;
+    margin-bottom: 24px;
+    color: var(--text-color);
+  }
+}
+
+.intermission-headline {
+  font-size: 1.4rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--background-color);
+}
+
+.intermission-countdown {
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  color: var(--background-color);
+}

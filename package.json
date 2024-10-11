@@ -1,0 +1,20 @@
+{
+  "name": "bpm-guesser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bad-words": "^4.0.0",
+    "badwords-list": "^2.0.1-4",
+    "vite": "^5.4.2"
+  }
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPM Guesser Game</title>
+    <!-- Fonts and CSS links -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="BPM Guesser Game" />
+    <meta property="og:description"
+        content="Test your rhythm skills with the BPM Guesser Game. Listen to the metronome and guess the beats per minute." />
+    <meta property="og:image" content="/img/card.png" />
+    <meta property="og:url" content="https://example.com/your-game-url" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BPM Guesser" />
+
+    <!-- Twitter Card Metadata -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BPM Guesser Game" />
+    <meta name="twitter:description"
+        content="Test your rhythm skills with the BPM Guesser Game. Listen to the metronome and guess the beats per minute." />
+    <meta name="twitter:image" content="/img/card.png" />
+
+
+</head>
+
+<body>
+
+
+    <!-- Home Screen -->
+    <div id="home-screen" class="screen active">
+        <div class="home-container">
+            <div class="main-section">
+                <div>
+
+                    <h1 class="hero-title">BPM Guesser</h1>
+                    <p class="hero-subtitle">Listen to a metronome and try to guess the bpm.</p>
+                </div>
+                <div class="cta-container">
+
+                    <button id="start-game" class="button cta-button">Start Game
+                        <img src="img/arrow.svg" alt="arrow-right">
+                    </button>
+                    <a href="#" id="open-scoring-modal" class="small-link">How scoring works</a>
+                </div>
+            </div>
+            <div class="sidebar">
+                <div class="high-score-container">
+                    <h2 class="high-score-title">High Scores</h2>
+                    <ul class="high-score-list" id="high-scores-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Countdown Screen -->
+    <div id="countdown-screen" class="screen">
+        <div class="centered-container">
+            <div class="countdown">Get ready...</div>
+        </div>
+    </div>
+
+    <!-- Intermission Screen -->
+    <div id="intermission-screen" class="screen">
+        <div class="centered-container">
+            <div class="intermission"></div>
+        </div>
+    </div>
+
+
+    <!-- Game Area -->
+    <div id="game-area" class="screen">
+        <div class="game-container">
+
+            <p class="game-info">Round <span id="current-round">1</span>/3</p>
+
+            <div class="metronome-visual" id="metronome-visual">
+                <div id="circle1" class="circle"></div>
+                <div id="circle2" class="circle"></div>
+            </div>
+            <div class="input-container">
+                <input type="number" id="bpm-guess" class="input bpm-input" placeholder="BPM">
+                <span class="input-label">Press Enter to submit</span>
+            </div>
+            <div class="button-container">
+                <button id="submit-guess" class="button">Submit Guess
+                    <img src="img/check.svg" alt="submit">
+                </button>
+                <span class="timer" id="timer">0</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- High Score Check Screen -->
+    <div id="high-score-check" class="screen">
+        <div class="high-score-check-container">
+            <p class="high-score-label">Your Score:</p>
+            <span class="hero-title" id="final-score-check"></span>
+        </div>
+        <div id="high-score-input-area">
+            <p class="hero-subtitle">You got a high score!</p>
+            <input type="text" id="player-name-check" class="input" placeholder="Enter Your Name">
+            <input type="url" id="player-url-check" class="input" placeholder="Enter Your URL (optional)">
+            <button id="submit-score-check" class="button">Submit Score
+                <img src="img/check.svg" alt="submit">
+            </button>
+            <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>Submitting score...</p>
+            </div>
+            <button id="skip-high-score" class="button">Skip
+                <img src="img/arrow.svg" alt="arrow-right">
+            </button>
+        </div>
+        <div id="no-high-score-area">
+            <p class="hero-subtitle">Good try! Unfortunately, it's not a high score.</p>
+            <button id="continue-to-final" class="button">Continue
+                <img src="img/arrow.svg" alt="arrow-right">
+            </button>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="screen">
+        <div class="end-container">
+            <div class="main-section">
+                <div class="end-screen-body">
+                    <h1 class="hero-title">Game Over!</h1>
+                    <div id="round-results" class="round-results-container"></div>
+                </div>
+                <div class="end-screen-footer">
+
+                    <div class="final-score-container">
+                        <p class="final-score-label">Final Score:</p>
+                        <span class="final-score" id="final-score"></span>
+                    </div>
+                    <div class="cta-container">
+                        <button id="play-again" class="button play-again">
+                            Start Over
+                            <img src="img/refresh.svg" alt="refresh">
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar high-scores-container">
+                <h2>High Scores</h2>
+                <ul id="high-scores-list-end"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Modal for Scoring Explanation -->
+    <div id="scoring-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-scoring-modal" class="close">&times;</span>
+            <div id="scoring-explanation" class="scoring-explanation">
+                <h3 class="hero-title">How Scoring Works:</h3>
+                <div id="scoring-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Game Button -->
+    <button id="end-game" class="end-game" style="display: none;"><img src="img/close.svg" alt="end-game"
+            class="end-game-icon"></button>
+
+    <!-- Scripts -->
+    <script type="module" src="/scripts/main.js"></script>
+</body>
+
+</html>
