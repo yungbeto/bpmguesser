@@ -3,6 +3,11 @@ let audioContext;
 
 export function initAudio() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            console.log('Audio context resumed');
+        });
+    }
 }
 
 export function playMetronomeSound(isTick) {
@@ -12,7 +17,7 @@ export function playMetronomeSound(isTick) {
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(isTick ? 1000 : 800, audioContext.currentTime);
     
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
     
     oscillator.connect(gainNode);

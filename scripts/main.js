@@ -38,14 +38,36 @@ const scoringExplanationLink = document.getElementById('open-scoring-modal');
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM content loaded');
-    initAudio();
     fetchAndDisplayHighScores('high-scores-list');
     showScreen('home-screen'); // Ensure only the home screen is shown initially
+
+    // Check if the device is mobile
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+        const audioPermissionModal = document.getElementById('audio-permission-modal');
+        audioPermissionModal.style.display = 'flex'; // Show the modal
+
+        document.getElementById('enable-audio').addEventListener('click', () => {
+            initAudio(); // Initialize audio context
+            audioPermissionModal.style.display = 'none'; // Hide the modal
+        });
+    } else {
+        initAudio(); // Initialize audio context for non-mobile devices
+    }
+
     document.getElementById('start-game').addEventListener('click', () => {
         console.log('Start game clicked');
         showScreen('countdown-screen');
         startGameCountdown();
     });
+
+    // Listen for the Escape key to trigger the endGame function
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            console.log('Escape key pressed');
+            endGame();
+        }
+    });
+
     document.getElementById('submit-guess').addEventListener('click', submitGuess);
     document.getElementById('submit-score-check').addEventListener('click', submitHighScoreCheck);
     document.getElementById('continue-to-final').addEventListener('click', () => {
@@ -146,22 +168,19 @@ function startGameCountdown() {
 function startRound() {
     showScreen('game-area');
 
-    // Delay the access to ensure that the screen is fully visible
     setTimeout(() => {
         const currentRoundDisplay = document.getElementById('current-round');
-        console.log('currentRoundDisplay:', currentRoundDisplay);
         if (!currentRoundDisplay) {
             console.error('currentRoundDisplay not found in DOM');
             return;
         }
 
-        currentRoundDisplay.textContent = currentRound;  // Setting the round number here
+        currentRoundDisplay.textContent = currentRound;
 
         actualBPM = generateRandomBPM();
         startTime = Date.now();
         timerInterval = setInterval(updateTimer, 1000);
 
-        // Ensure that scoreDisplay is also present before setting its value
         if (scoreDisplay) {
             scoreDisplay.textContent = totalScore.toFixed(2);
         } else {
@@ -174,14 +193,12 @@ function startRound() {
         // Delay focus to ensure it works after everything is visible
         setTimeout(() => {
             bpmGuessInput.focus();
-        }, 200);  // Increased delay slightly to ensure everything is loaded
+            bpmGuessInput.select(); // Select the input to ensure the keyboard opens
+        }, 500);  // Adjust delay as needed
 
-        startMetronome();
-    }, 300);  // Increased delay to ensure that DOM is ready
+        startMetronome(); // Start the metronome immediately
+    }, 300);
 }
-
-
-
 
 function startMetronome() {
     const interval = 60000 / actualBPM;
@@ -522,7 +539,10 @@ async function fetchAndDisplayHighScores(elementId) {
                     urlSpan.appendChild(urlLink);
                 } else {
                     console.error("Invalid URL:", data.url);
-                    urlSpan.textContent = data.url;
+                    const urlText = document.createElement('span');
+                    urlText.textContent = data.url;
+                    urlText.classList.add('high-score-url'); // Apply the same class for styling
+                    urlSpan.appendChild(urlText);
                 }
             }
             
