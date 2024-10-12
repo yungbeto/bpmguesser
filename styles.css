@@ -141,6 +141,7 @@ h2 {
   gap: 0px;
   width: 100%;
   color: var(--background-color);
+  height: 100%;
 }
 
 /* Update the high score title styles */

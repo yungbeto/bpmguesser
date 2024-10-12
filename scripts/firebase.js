@@ -18,7 +18,7 @@ const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
 export async function getHighScores() {
-    const highScoresQuery = query(collection(db, "highScores"), orderBy("score", "desc"), limit(10));
+    const highScoresQuery = query(collection(db, "highScores"), orderBy("score", "desc"), limit(50)); // Fetch top 50
     return await getDocs(highScoresQuery);
 }
 
