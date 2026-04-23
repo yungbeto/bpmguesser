@@ -586,6 +586,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+.result-value--bonus {
+  color: #16a34a;
+}
+
+[data-theme="dark"] .result-value--bonus {
+  color: #4ade80;
+}
+
 /* ===== END SCREEN COMPONENTS ===== */
 
 /* Score card section (head + rounds) */

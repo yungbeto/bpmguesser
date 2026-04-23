@@ -9,6 +9,7 @@ import {
 } from './firebase.js';
 import {
   calculateScore,
+  calculateScoreBreakdown,
   generateRandomBPM,
   TIME_PENALTY_THRESHOLD,
   TOTAL_ROUNDS,
@@ -148,8 +149,10 @@ function initCookieBanner() {
 function getScoringHTML() {
   return `
         <h3 class="hero-title" id="app-modal-title"><i class="ph ph-circle"></i> BPM Guesser</h3>
-        <p>For each round the max score is 100 points. Your score depends on both accuracy and speed. The closer your guess is to the actual BPM, the higher your score will be.</p>
-        <p>Speed also plays a role: if you make your guess within the first 5 seconds, there's no penalty. After that, you'll lose 0.5 points for every second you delay. If your guess is more than 20 BPM away from the correct answer, you won't score any points for that round.</p>
+        <p>Listen to the metronome and guess the BPM. Each round is scored on two things:</p>
+        <p><strong>Accuracy</strong> — Up to 100 points. The closer your guess, the higher your score. A guess more than 20 BPM away scores zero for that round.</p>
+        <p><strong>Speed bonus</strong> — Up to +33 points. The faster you commit to your guess, the more bonus you earn. The bonus decays to zero at 10 seconds, so quick decisions pay off.</p>
+        <p>If you take longer than 3 seconds, you'll lose 0.5 points per second after that. The maximum score per round is 133, and 399 across all three rounds.</p>
         <h4><i class="ph ph-dot"></i> Game Modes</h4>
         <p><strong>Daily Challenge</strong> — The same three rounds for everyone, chosen from today's date. You get one run per day and your total is saved for the day's leaderboard.</p>
         <p><strong>Quick Play</strong> — A new random set every time, with no daily limit. Use it to practice; only Daily Challenge results appear on the "Today's game" board.</p>
@@ -620,7 +623,8 @@ function submitGuess() {
   gameArea.style.backgroundColor = '';
 
   const timeTaken = (Date.now() - startTime) / 1000;
-  const roundScore = calculateScore(actualBPM, guessedBPM, timeTaken);
+  const breakdown = calculateScoreBreakdown(actualBPM, guessedBPM, timeTaken);
+  const roundScore = breakdown.finalScore;
   totalScore += roundScore;
 
   roundResults.push({
@@ -629,6 +633,8 @@ function submitGuess() {
     guessedBPM,
     score: roundScore,
     timeTaken,
+    speedBonus: breakdown.speedBonus,
+    timePenalty: breakdown.timePenalty,
   });
 
   const runningScoreEl = document.getElementById('running-score');
@@ -666,6 +672,14 @@ function showIntermission() {
                <p class="intermission-countdown">3</p>
            </div>`;
 
+  const speedBonus = lastResult.speedBonus ?? 0;
+  const bonusHTML = speedBonus > 0
+    ? `<div class="intermission-bonus" id="intermission-bonus">
+           <i class="ph-fill ph-lightning" aria-hidden="true"></i>
+           +${speedBonus.toFixed(2)} speed bonus
+       </div>`
+    : '';
+
   let count = 3;
   intermissionArea.innerHTML = `
         <div class="intermission-result">
@@ -674,6 +688,7 @@ function showIntermission() {
                 <span class="intermission-score" id="intermission-score-value">0.00</span>
                 <span class="intermission-grade grade-${grade}">${grade}</span>
             </div>
+            ${bonusHTML}
             <span class="intermission-detail">${diffText}</span>
         </div>
         <div class="intermission-separator"></div>
@@ -682,6 +697,12 @@ function showIntermission() {
 
   const scoreEl = document.getElementById('intermission-score-value');
   if (scoreEl) animateCount(scoreEl, lastResult.score);
+
+  if (speedBonus > 0) {
+    setTimeout(() => {
+      document.getElementById('intermission-bonus')?.classList.add('is-visible');
+    }, 350);
+  }
 
   intermissionInterval = setInterval(() => {
     count--;
@@ -931,6 +952,10 @@ function showFinalScreen() {
                     <div class="result-item">
                         <span class="result-label">Time</span>
                         <span class="result-value">${result.timeTaken.toFixed(2)}s</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Speed Bonus</span>
+                        <span class="result-value result-value--bonus">${result.speedBonus > 0 ? '+' + result.speedBonus.toFixed(2) : '—'}</span>
                     </div>
                 </div>
                 </div>
