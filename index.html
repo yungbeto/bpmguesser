@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BPM Guesser Game</title>
+    <title>BPM Guesser</title>
     <!-- Fonts and CSS links -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +22,8 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:url" content="https://bpmga.me" />
+    <link rel="canonical" href="https://bpmga.me" />
+    <link rel="alternate" hreflang="en" href="https://bpmga.me" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BPM Guesser" />
 
@@ -162,7 +164,7 @@
             <div class="game-header">
                 <p class="game-info">Round <span id="current-round">1</span>/<span id="total-rounds">3</span></p>
                 <div class="game-timer-group">
-                    <span class="timer" id="timer" aria-label="Elapsed time">0</span><span class="timer-unit">s</span>
+                    <span class="timer" id="timer" aria-label="Elapsed time" translate="no">0</span><span class="timer-unit" translate="no">s</span>
                     <span class="timer-penalty" id="timer-penalty" aria-live="polite" aria-atomic="true"></span>
                 </div>
             </div>
@@ -181,7 +183,7 @@
                 <div class="input-container">
                     <input type="number" id="bpm-guess" class="input bpm-input" placeholder="BPM" inputmode="numeric"
                         min="1" max="300" aria-label="Your BPM guess">
-                    <span class="bpm-unit">bpm</span>
+                    <span class="bpm-unit" translate="no">bpm</span>
                 </div>
             </div>
 
@@ -250,7 +252,7 @@
                         <p class="end-final-label">Final Score</p>
                         <div class="end-final-row">
                             <div class="end-final-left">
-                                <span class="final-score" id="final-score"></span>
+                                <span class="final-score" id="final-score" translate="no"></span>
                                 <span class="round-grade-badge" id="final-grade-badge"></span>
                             </div>
                             <button id="share-score" class="end-copy-btn">
