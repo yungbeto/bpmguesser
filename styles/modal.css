@@ -160,6 +160,9 @@
 }
 
 .modal-body .hero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text);
   font-size: 1.25rem;
   line-height: 1.4;
@@ -169,12 +172,27 @@
   text-wrap: balance;
 }
 
+.modal-body h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
 .modal-body p {
   font-size: 0.9375rem;
   line-height: 1.6;
   color: var(--text-2);
   text-wrap: pretty;
   margin: 0 0 16px;
+}
+
+.modal-body p strong {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .modal-body p:last-child {

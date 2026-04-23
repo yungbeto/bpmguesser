@@ -137,19 +137,22 @@ function initCookieBanner() {
     initFirebaseAnalytics();
     closeBanner();
   });
-  document.getElementById('accept-cookies-essential').addEventListener('click', () => {
-    setCookieConsent('essential');
-    closeBanner();
-  });
+  document
+    .getElementById('accept-cookies-essential')
+    .addEventListener('click', () => {
+      setCookieConsent('essential');
+      closeBanner();
+    });
 }
 
 function getScoringHTML() {
   return `
-        <h3 class="hero-title" id="app-modal-title">BPM Guesser</h3>
-        <p><strong>Daily Challenge</strong> — The same three rounds for everyone, chosen from today's date. You get one run per day and your total is saved for the day's leaderboard.</p>
-        <p><strong>Quick Play</strong> — A new random set every time, with no daily limit. Use it to practice; only Daily Challenge results appear on the "Today's game" board.</p>
+        <h3 class="hero-title" id="app-modal-title"><i class="ph ph-circle"></i> BPM Guesser</h3>
         <p>For each round the max score is 100 points. Your score depends on both accuracy and speed. The closer your guess is to the actual BPM, the higher your score will be.</p>
         <p>Speed also plays a role: if you make your guess within the first 5 seconds, there's no penalty. After that, you'll lose 0.5 points for every second you delay. If your guess is more than 20 BPM away from the correct answer, you won't score any points for that round.</p>
+        <h4><i class="ph ph-dot"></i> Game Modes</h4>
+        <p><strong>Daily Challenge</strong> — The same three rounds for everyone, chosen from today's date. You get one run per day and your total is saved for the day's leaderboard.</p>
+        <p><strong>Quick Play</strong> — A new random set every time, with no daily limit. Use it to practice; only Daily Challenge results appear on the "Today's game" board.</p>
         <p>This game was conceived and developed by <a href="https://robysaavedra.com" target="_blank">Roby Saavedra</a>.</p>
     `;
 }
@@ -228,9 +231,9 @@ function updateHomePB() {
 function applyTheme(dark) {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const iconLight = document.getElementById('theme-icon-light');
-  const iconDark  = document.getElementById('theme-icon-dark');
+  const iconDark = document.getElementById('theme-icon-dark');
   if (iconLight) iconLight.style.display = dark ? 'none' : '';
-  if (iconDark)  iconDark.style.display  = dark ? '' : 'none';
+  if (iconDark) iconDark.style.display = dark ? '' : 'none';
 }
 
 (function initTheme() {
@@ -348,7 +351,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const next = !expanded;
     btn.setAttribute('aria-expanded', String(next));
     wrap.setAttribute('aria-hidden', String(!next));
-    btn.setAttribute('aria-label', next ? 'Hide round details' : 'Show round details');
+    btn.setAttribute(
+      'aria-label',
+      next ? 'Hide round details' : 'Show round details',
+    );
 
     if (next) {
       // Un-hide, force reflow so the browser sees 0fr before transitioning to 1fr
@@ -357,9 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
       card.classList.add('is-open');
     } else {
       card.classList.remove('is-open');
-      wrap.addEventListener('transitionend', () => {
-        if (!card.classList.contains('is-open')) wrap.style.display = 'none';
-      }, { once: true });
+      wrap.addEventListener(
+        'transitionend',
+        () => {
+          if (!card.classList.contains('is-open')) wrap.style.display = 'none';
+        },
+        { once: true },
+      );
     }
   });
 
@@ -390,8 +400,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn) return;
     btn.addEventListener('mousemove', (e) => {
       const r = btn.getBoundingClientRect();
-      btn.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`);
-      btn.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`);
+      btn.style.setProperty(
+        '--mouse-x',
+        `${((e.clientX - r.left) / r.width) * 100}%`,
+      );
+      btn.style.setProperty(
+        '--mouse-y',
+        `${((e.clientY - r.top) / r.height) * 100}%`,
+      );
     });
   })();
 
@@ -1113,8 +1129,12 @@ function toggleHomeScores() {
     const headerRevealMs = isMobileHome ? 60 : 320;
     const staggerDelayMs = isMobileHome ? 100 : 180;
     _scoresPanelTimer1 = setTimeout(() => {
-      const header = document.querySelector('#home-scores-panel .home-scores-header');
-      const tabBar = document.querySelector('#home-scores-panel .hs-tabs-sticky');
+      const header = document.querySelector(
+        '#home-scores-panel .home-scores-header',
+      );
+      const tabBar = document.querySelector(
+        '#home-scores-panel .hs-tabs-sticky',
+      );
       if (header) header.classList.add('is-visible');
       if (tabBar) tabBar.classList.add('is-visible');
       if (alreadyLoaded) {
@@ -1151,9 +1171,13 @@ function staggerHomeScoreItems() {
 }
 
 function resetHomeScorePanel() {
-  const header = document.querySelector('#home-scores-panel .home-scores-header');
+  const header = document.querySelector(
+    '#home-scores-panel .home-scores-header',
+  );
   const tabBar = document.querySelector('#home-scores-panel .hs-tabs-sticky');
-  const items = document.querySelectorAll('#home-scores-list .home-score-entry');
+  const items = document.querySelectorAll(
+    '#home-scores-list .home-score-entry',
+  );
   // Disable transitions so reset is instant (no visible flash before panel collapses)
   if (header) {
     header.style.transition = 'none';
@@ -1259,10 +1283,7 @@ async function renderTodaysScore(
 
   try {
     const snapshot = await getDailyHighScores(getDayNumber());
-    if (
-      listRequestId != null &&
-      listRequestId !== _endListRequestId
-    ) {
+    if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;
     }
     list.innerHTML = '';
@@ -1379,7 +1400,9 @@ function resetGame() {
   if (endC?.classList.contains('end-scores-open')) {
     endC.classList.remove('end-scores-open');
     document.getElementById('end-toggle-scores')?.classList.remove('is-active');
-    document.getElementById('end-toggle-scores')?.setAttribute('aria-pressed', 'false');
+    document
+      .getElementById('end-toggle-scores')
+      ?.setAttribute('aria-pressed', 'false');
     const ep = document.getElementById('end-scores-panel');
     ep?.setAttribute('aria-hidden', 'true');
     resetHighScorePanelScroll(ep);
@@ -1415,19 +1438,13 @@ function prependHttps(url) {
   return url;
 }
 
-async function fetchAndDisplayHighScores(
-  elementId,
-  listRequestId = null,
-) {
+async function fetchAndDisplayHighScores(elementId, listRequestId = null) {
   const list = document.getElementById(elementId);
   if (!list) return;
   list.innerHTML = '<li class="home-score-loading">Loading…</li>';
   try {
     const querySnapshot = await getHighScores();
-    if (
-      listRequestId != null &&
-      listRequestId !== _endListRequestId
-    ) {
+    if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;
     }
     list.innerHTML = '';
