@@ -26,14 +26,14 @@ app.post('/api/highscores', async (req, res) => {
 });
 
 app.get('/api/highscores', async (req, res) => {
-  const highScores = await HighScore.find().sort({ score: -1 }).limit(10);
+  const highScores = await HighScore.find().sort({ score: -1 }).limit(50);
   res.json(highScores);
 });
 
 app.get('/api/highscores/check/:score', async (req, res) => {
   const { score } = req.params;
   const count = await HighScore.countDocuments({ score: { $gt: score } });
-  const isHighScore = count < 10;
+  const isHighScore = count < 50;
   res.json({ isHighScore });
 });
 

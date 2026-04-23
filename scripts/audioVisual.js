@@ -4,37 +4,37 @@ let audioContext;
 export function initAudio() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     if (audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
-            console.log('Audio context resumed');
-        });
+        audioContext.resume();
     }
 }
 
-export function playMetronomeSound(isTick) {
+export function getAudioContext() {
+    return audioContext;
+}
+
+export function playMetronomeSound(scheduledTime, isTick) {
+    if (navigator.vibrate) navigator.vibrate(10);
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(isTick ? 1000 : 800, audioContext.currentTime);
-    
-    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-    
+    oscillator.frequency.setValueAtTime(isTick ? 1000 : 800, scheduledTime);
+
+    gainNode.gain.setValueAtTime(0.2, scheduledTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, scheduledTime + 0.1);
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.1);
+
+    oscillator.start(scheduledTime);
+    oscillator.stop(scheduledTime + 0.1);
 }
 
-export function updateVisualMetronome(circle1, circle2, currentBeat) {
-    circle1.classList.remove('active');
-    circle2.classList.remove('active');
-    if (currentBeat % 2 === 0) {
-        circle1.classList.add('active');
-    } else {
-        circle2.classList.add('active');
-    }
+export function updateVisualMetronome(circle) {
+    circle.classList.remove('beat-pulse');
+    void circle.offsetWidth;
+    circle.classList.add('beat-pulse');
 }
 
 export function changeBackgroundColor(isDark) {

@@ -31,6 +31,9 @@
     <!-- Howler.js for audio handling -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"></script>
+
 </head>
 
 <body>
@@ -38,34 +41,97 @@
 
     <!-- Home Screen -->
     <div id="home-screen" class="screen active">
-        <div class="home-container">
-            <div class="main-section">
-                <div>
+        <div class="home-wrapper" id="home-wrapper">
 
-                    <h1 class="hero-title">BPM Guesser</h1>
-                    <p class="hero-subtitle">Listen to a metronome and try to guess the bpm.</p>
+            <!-- Main card -->
+            <div class="home-layout" id="home-card">
+
+                <!-- Head -->
+                <div class="home-head">
+                    <div class="home-info">
+                        <h1 class="home-title">BPM Guesser</h1>
+                        <p class="home-subtitle">Listen to a metronome and try and guess the bpm</p>
+                    </div>
+                    <div class="home-icon-row">
+                        <button class="home-icon-btn" id="open-about" aria-label="About">
+                            <i class="ph ph-question"></i>
+                        </button>
+                        <button class="home-icon-btn home-scores-btn" id="toggle-scores" aria-label="High scores"
+                            aria-pressed="false">
+                            <i class="ph ph-list-numbers"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="cta-container">
 
-                    <button id="start-game" class="button cta-button">Start Game
-                        <img src="img/arrow.svg" alt="arrow-right">
+                <!-- Daily Challenge Section -->
+                <div class="daily-section">
+                    <div class="daily-eyebrow-line">
+                        <i class="ph-fill ph-calendar-blank"></i>
+                        <span class="daily-eyebrow-text">Day <span id="day-number" class="day-number"></span></span>
+                        <span class="daily-eyebrow-sep" id="daily-eyebrow-sep"></span>
+                        <span class="daily-eyebrow-thanks" id="daily-eyebrow-thanks"></span>
+                    </div>
+                    <div class="daily-btn-wrapper">
+                        <button id="start-daily" class="home-daily-btn">
+                            <span class="home-daily-label">Daily Challenge</span>
+                            <i class="ph ph-arrow-right"></i>
+                        </button>
+                        <div class="daily-tooltip">Copy details</div>
+                    </div>
+                </div>
+
+                <!-- Or Separator -->
+                <div class="home-or-separator">
+                    <div class="home-or-label">or</div>
+                </div>
+
+                <!-- Foot -->
+                <div class="home-foot">
+                    <button id="start-game" class="home-quick-btn">
+                        <span>Quick Play</span>
+                        <i class="ph ph-arrow-right"></i>
                     </button>
-                    <a href="#" id="open-scoring-modal" class="small-link">How scoring works</a>
+                    <div class="home-footer-links">
+                        <a href="/privacy.html">Privacy policy</a>
+                        <a href="/terms.html">Terms of service</a>
+                    </div>
                 </div>
-            </div>
-            <div class="sidebar">
-                <div class="high-score-container">
-                    <h2 class="high-score-title">High Scores</h2>
-                    <ul class="high-score-list" id="high-scores-list"></ul>
+
+            </div><!-- /home-layout -->
+
+            <!-- High Scores Panel -->
+            <div class="home-scores-panel" id="home-scores-panel" aria-hidden="true">
+                <button class="home-scores-back" id="close-scores" aria-label="Go back">
+                    <i class="ph ph-arrow-left"></i>
+                    Back
+                </button>
+                <div class="home-scores-inner">
+                    <div class="home-scores-header">
+                        <h2 class="home-scores-title">High Scores</h2>
+                    </div>
+                    <div class="hs-tabs-sticky">
+                        <div class="hs-tabs" role="tablist">
+                            <button class="hs-tab hs-tab--active" id="tab-alltime" role="tab" aria-selected="true">
+                                <i class="ph ph-asterisk hs-tab__marker" aria-hidden="true"></i>
+                                All time
+                            </button>
+                            <button class="hs-tab" id="tab-today" role="tab" aria-selected="false">
+                                <i class="ph ph-asterisk hs-tab__marker" aria-hidden="true"></i>
+                                Today's game
+                            </button>
+                        </div>
+                    </div>
+                    <ul class="home-scores-list" id="home-scores-list"></ul>
                 </div>
-            </div>
-        </div>
+            </div><!-- /home-scores-panel -->
+
+        </div><!-- /home-wrapper -->
     </div>
 
     <!-- Countdown Screen -->
     <div id="countdown-screen" class="screen">
         <div class="centered-container">
-            <div class="countdown">Get ready...</div>
+            <div class="countdown" aria-live="assertive" aria-atomic="true">Get ready...</div>
         </div>
     </div>
 
@@ -81,21 +147,41 @@
     <div id="game-area" class="screen">
         <div class="game-container">
 
-            <p class="game-info">Round <span id="current-round">1</span>/3</p>
+            <div id="daily-game-indicator" class="daily-game-indicator" style="display:none;">
+                <i class="ph-fill ph-calendar-blank"></i>
+                Daily Challenge <span id="daily-game-day-number"></span>
+            </div>
 
-            <div class="metronome-visual" id="metronome-visual">
-                <div id="circle1" class="circle"></div>
-                <div id="circle2" class="circle"></div>
+            <div class="game-header">
+                <p class="game-info">Round <span id="current-round">1</span>/<span id="total-rounds">3</span></p>
+                <div class="game-timer-group">
+                    <span class="timer" id="timer" aria-label="Elapsed time">0</span><span class="timer-unit">s</span>
+                    <span class="timer-penalty" id="timer-penalty" aria-live="polite" aria-atomic="true"></span>
+                </div>
             </div>
-            <div class="input-container">
-                <input type="number" id="bpm-guess" class="input bpm-input" placeholder="BPM" inputmode="numeric">
-                <span class="input-label">Press Enter to submit</span>
+
+            <p class="running-score" id="running-score" style="display:none;">Score: <span
+                    id="running-score-value">0</span></p>
+
+            <div class="metronome-section">
+                <p class="bpm-range-hint" id="bpm-range-hint"></p>
+                <div id="metronome-visual" aria-hidden="true">
+                    <div id="circle1" class="circle"></div>
+                </div>
             </div>
+
+            <div class="input-section">
+                <div class="input-container">
+                    <input type="number" id="bpm-guess" class="input bpm-input" placeholder="BPM" inputmode="numeric"
+                        min="1" max="300" aria-label="Your BPM guess">
+                    <span class="bpm-unit">bpm</span>
+                </div>
+            </div>
+
             <div class="button-container">
                 <button id="submit-guess" class="button">Submit Guess
-                    <img src="img/check.svg" alt="submit">
+                    <i class="ph ph-check"></i>
                 </button>
-                <span class="timer" id="timer">0</span>
             </div>
 
         </div>
@@ -112,74 +198,134 @@
             <input type="text" id="player-name-check" class="input" placeholder="Enter Your Name">
             <input type="url" id="player-url-check" class="input" placeholder="Enter Your URL (optional)">
             <button id="submit-score-check" class="button">Submit Score
-                <img src="img/check.svg" alt="submit">
+                <i class="ph ph-check"></i>
             </button>
             <div id="loading-indicator" class="loading-indicator" style="display: none;">
                 <div class="spinner"></div>
                 <p>Submitting score...</p>
             </div>
             <button id="skip-high-score" class="button">Skip
-                <img src="img/arrow.svg" alt="arrow-right">
+                <i class="ph ph-arrow-right"></i>
             </button>
         </div>
         <div id="no-high-score-area">
             <p class="hero-subtitle">Good try! Unfortunately, it's not a high score.</p>
             <button id="continue-to-final" class="button">Continue
-                <img src="img/arrow.svg" alt="arrow-right">
+                <i class="ph ph-arrow-right"></i>
             </button>
         </div>
     </div>
 
     <!-- End Screen -->
     <div id="end-screen" class="screen">
-        <div class="end-container">
-            <div class="main-section">
-                <div class="end-screen-body">
-                    <h1 class="hero-title">Game Over!</h1>
-                    <div id="round-results" class="round-results-container"></div>
-                </div>
-                <div class="end-screen-footer">
-
-                    <div class="final-score-container">
-                        <p class="final-score-label">Final Score:</p>
-                        <span class="final-score" id="final-score"></span>
-                    </div>
-                    <div class="cta-container">
-                        <button id="play-again" class="button play-again">
-                            Start Over
-                            <img src="img/refresh.svg" alt="refresh">
+        <div class="end-container" id="end-container">
+            <div class="end-card">
+                <!-- Score card: title + round results -->
+                <div class="end-score-card">
+                    <div class="end-head">
+                        <button type="button" class="end-home-link" id="go-home" aria-label="Back to home">
+                            <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                            <span>Home</span>
                         </button>
 
+                        <button type="button" class="end-head-scores-btn" id="end-toggle-scores"
+                            aria-label="High scores" aria-pressed="false">
+                            <i class="ph ph-list-numbers" aria-hidden="true"></i>
+                            See scores
+                        </button>
                     </div>
+                    <h1 class="end-title">Game Over!</h1>
+                    <div id="round-results" class="round-results-container"></div>
+                </div>
+                <!-- Final score + actions -->
+                <div class="end-final-section">
+                    <div class="end-final-header">
+                        <p class="end-final-label">Final Score</p>
+                        <div class="end-final-row">
+                            <div class="end-final-left">
+                                <span class="final-score" id="final-score"></span>
+                                <span class="round-grade-badge" id="final-grade-badge"></span>
+                            </div>
+                            <button id="share-score" class="end-copy-btn">
+                                Copy results
+                                <i class="ph ph-copy"></i>
+                            </button>
+                        </div>
+                        <p class="pb-status" id="pb-status"></p>
+                    </div>
+                    <button id="play-again" class="end-play-again-btn">
+                        Play Again
+                        <i class="ph ph-arrow-counter-clockwise"></i>
+                    </button>
                 </div>
             </div>
-            <div class="sidebar high-scores-container">
-                <h2>High Scores</h2>
-                <ul id="high-scores-list-end"></ul>
+            <!-- Always-visible high scores panel -->
+            <div class="end-scores-panel" id="end-scores-panel" aria-hidden="true">
+                <button type="button" class="home-scores-back" id="close-scores-end" aria-label="Go back">
+                    <i class="ph ph-arrow-left"></i>
+                    Back
+                </button>
+                <div class="home-scores-inner">
+                    <div class="home-scores-header">
+                        <h2 class="home-scores-title">High Scores</h2>
+                    </div>
+                    <div class="hs-tabs-sticky">
+                        <div class="hs-tabs" role="tablist">
+                            <button class="hs-tab hs-tab--active" id="tab-alltime-end" role="tab" aria-selected="true">
+                                <i class="ph ph-asterisk hs-tab__marker" aria-hidden="true"></i>
+                                All time
+                            </button>
+                            <button class="hs-tab" id="tab-today-end" role="tab" aria-selected="false">
+                                <i class="ph ph-asterisk hs-tab__marker" aria-hidden="true"></i>
+                                Today's game
+                            </button>
+                        </div>
+                    </div>
+                    <ul class="home-scores-list" id="high-scores-list-end"></ul>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- The Modal for Scoring Explanation -->
-    <div id="scoring-modal" class="modal">
+    <!-- Generic Modal -->
+    <div id="app-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
         <div class="modal-content">
-            <span id="close-scoring-modal" class="close">&times;</span>
-            <div id="scoring-explanation" class="scoring-explanation">
-                <h3 class="hero-title">How Scoring Works:</h3>
-                <div id="scoring-details"></div>
+            <div class="modal-body" id="app-modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn--primary" id="app-modal-confirm">Got it</button>
             </div>
         </div>
     </div>
 
     <!-- End Game Button -->
-    <button id="end-game" class="end-game" style="display: none;"><img src="img/close.svg" alt="end-game"
-            class="end-game-icon"></button>
+    <button id="end-game" class="end-game" aria-label="End game" style="display: none;"><i class="ph ph-x"></i></button>
 
     <!-- Audio Permission Modal -->
-    <div id="audio-permission-modal" class="modal">
+    <div id="audio-permission-modal" class="modal" role="dialog" aria-modal="true" aria-label="Enable audio">
         <div class="modal-content">
-            <p>To enhance your experience, please enable audio.</p>
-            <button id="enable-audio" class="button">Enable Audio</button>
+            <div class="modal-body">
+                <p>To enhance your experience, please enable audio.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn--primary" id="enable-audio">Enable audio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cookie Banner: essential vs optional (analytics). See /privacy.html -->
+    <div id="cookie-banner" class="cookie-banner" style="display:none;" role="dialog"
+        aria-label="Cookie and storage choices" aria-modal="false">
+        <div class="cookie-banner__content">
+            <p class="cookie-text">We use your browser’s storage for game data (e.g. scores, daily result on this
+                device). If you use leaderboards, your name and score are sent to our servers. With your permission we
+                also use optional analytics to understand traffic. See our
+                <a class="cookie-link" href="/privacy.html">Privacy policy</a>.
+            </p>
+            <div class="cookie-banner__actions" role="group" aria-label="Your choice">
+                <button type="button" id="accept-cookies-essential" class="cookie-btn cookie-btn--secondary">Essential
+                    only</button>
+                <button type="button" id="accept-cookies" class="cookie-btn cookie-btn--primary">Accept all</button>
+            </div>
         </div>
     </div>
 
