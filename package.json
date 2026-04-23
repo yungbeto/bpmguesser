@@ -15,6 +15,7 @@
   "dependencies": {
     "bad-words": "^4.0.0",
     "badwords-list": "^2.0.1-4",
+    "firebase": "^12.12.1",
     "vite": "^5.4.2"
   },
   "devDependencies": {

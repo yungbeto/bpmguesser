@@ -1,0 +1,768 @@
+/* End Screen container — matches home-wrapper open state */
+.end-container {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--surface-2);
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+/* End screen main card */
+.end-card {
+  flex: 0 0 428px;
+  margin: 16px;
+  padding: 16px 24px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow:
+    0px 20px 25px 0px rgba(0, 0, 0, 0.1),
+    0px 10px 10px 0px rgba(0, 0, 0, 0.04);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.cta-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+/* End screen high scores — desktop: side column; mobile: overlay in @media */
+.end-scores-panel {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.high-score-check-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: auto;
+}
+
+.high-score-label {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-color);
+  margin-bottom: 0px;
+}
+
+.high-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.high-score-list-item {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Hero Title */
+.hero-title {
+  color: var(--text-color);
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 40px;
+  letter-spacing: -1px;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.hero-subtitle {
+  color: var(--gray);
+  font-family: Inter;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 28px;
+  margin: 8px 0 0 0;
+  max-width: 80%;
+  text-wrap: pretty;
+}
+
+.hero-title-handjet {
+  font-size: 2rem;
+  line-height: 2rem;
+  font-weight: 400; /* Medium weight for contrast */
+  margin: 0;
+}
+
+/* CTA Button */
+.secondary-button {
+  background-color: transparent;
+  color: var(--text-color);
+  border-color: var(--light-gray);
+  width: 100%;
+}
+
+.secondary-button:hover {
+  background-color: var(--very-light-gray);
+  opacity: 1;
+}
+
+/* Game Header */
+.daily-game-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 12px 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 100px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.game-timer-group {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.timer-unit {
+  font-size: 11px;
+  color: var(--gray);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.game-info {
+  color: var(--text-color);
+  font-family: Inter;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 24px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.running-score {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gray);
+  line-height: 20px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Metronome Section */
+.metronome-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.bpm-range-hint {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gray);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+#metronome-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+}
+
+@keyframes beat-pulse {
+  0% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+  20% {
+    transform: scale(1.12);
+    background-color: var(--active-color);
+  }
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+.circle.beat-pulse {
+  animation: beat-pulse 0.3s ease-out forwards;
+}
+
+/* Input Section */
+.input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.input-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.bpm-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: -8px;
+}
+
+.game-container .input {
+  margin: 0;
+}
+
+/* Input Styles */
+.input {
+  background-color: transparent;
+  border: none;
+  padding: 10px 15px;
+  color: var(--text-color);
+  text-align: center;
+  font-family: Inter, sans-serif;
+  font-size: clamp(3rem, 15vw, 10rem);
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.05em;
+  margin: 20px 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 40vh;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border: none;
+}
+
+/* Add this to your existing .input styles or create a new rule */
+.input::placeholder {
+  color: var(--gray); /* Change this from 'transparent' to the desired color */
+  opacity: 1; /* Ensure the placeholder is visible */
+}
+
+/* For older browsers, you might need these as well */
+.input::-webkit-input-placeholder {
+  color: var(--gray);
+}
+
+.input::-moz-placeholder {
+  color: var(--gray);
+}
+
+.input:-ms-input-placeholder {
+  color: var(--gray);
+}
+
+.input:-moz-placeholder {
+  color: var(--gray);
+}
+
+.button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Buttons */
+.button {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--button-color);
+  color: var(--button-text-color);
+  border: 2px solid var(--border-color);
+  padding: 14px 20px;
+  font-size: 1.2rem;
+  border-radius: 40px;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.15s ease;
+  height: fit-content;
+  font-weight: 400;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.button:hover {
+  opacity: 0.85;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+#submit-guess {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Countdown and Intermission */
+.countdown,
+.intermission {
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-align: center;
+  color: var(--background-color);
+}
+
+.centered-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh; /* Ensure it fills the parent container */
+}
+
+/* Intermission Text Styles */
+.intermission-exclamation {
+  font-size: 1.2rem;
+  font-weight: 400;
+  text-align: center;
+  animation: pulseWithColor 0.5s infinite alternate;
+}
+
+.intermission-subtitle {
+  font-size: 1rem;
+  font-weight: normal;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Round Results */
+.round-results-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
+}
+
+/* Round result card */
+.round-result {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* TOP: row label+score, caret to expand */
+.round-result-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  box-sizing: border-box;
+  /* button reset */
+  background: transparent;
+  border: none;
+  padding: 16px;
+  margin: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  border-radius: 4px;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.15s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.1s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.round-result-top:hover .round-result__caret {
+  color: var(--text-2);
+}
+
+.round-result-top:active {
+  transform: scale(0.96);
+}
+
+.round-result-top:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.round-result-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.round-result-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+  line-height: 16px;
+  letter-spacing: -0.36px;
+  margin: 0;
+}
+
+.round-result-score-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.round-result-score {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 32px;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grade badge — used for round results and final score */
+.round-grade-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  flex-shrink: 0;
+}
+
+/* Grade badge colors */
+.grade-S {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+.grade-A {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+.grade-B {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.grade-C {
+  background-color: #fde68a;
+  color: #b45309;
+}
+.grade-F {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.round-result__caret {
+  color: var(--text-3);
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  display: block;
+  transform-origin: 50% 50%;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0, 0, 1),
+    color 0.15s ease;
+}
+
+.round-result.is-open .round-result__caret {
+  transform: rotate(180deg);
+  color: var(--text);
+}
+
+/* Height animation wrapper — grid trick lets us animate to/from height: auto */
+.result-details-wrap {
+  display: none; /* JS sets to 'grid' before opening, 'none' after closing */
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.round-result.is-open .result-details-wrap {
+  grid-template-rows: 1fr;
+}
+
+/* BOTTOM: stats row */
+.result-details {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 24px 48px;
+  flex-wrap: wrap;
+  padding: 0 16px 16px 16px;
+  /* Enter: fade + slide up from a few px below */
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    opacity 0.18s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Stagger content in slightly after height starts opening */
+.round-result.is-open .result-details {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.08s;
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.result-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+  line-height: 16px;
+  letter-spacing: -0.36px;
+  margin: 0;
+}
+
+.result-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 32px;
+  letter-spacing: -0.48px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== END SCREEN COMPONENTS ===== */
+
+/* Score card section (head + rounds) */
+.end-score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Three-column head: Home | title | (scores, mobile) */
+.end-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  width: 100%;
+  column-gap: 8px;
+}
+
+.end-home-link {
+  grid-column: 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.48px;
+  line-height: 1.2;
+  border-radius: 8px;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.end-home-link:hover {
+  background: var(--hover-bg);
+  opacity: 0.9;
+}
+
+.end-home-link:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.end-title {
+  grid-column: 2;
+  text-align: left;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 32px;
+  letter-spacing: -0.72px;
+  margin: 0;
+  margin-top: -16px;
+}
+
+/* Match home high-score icon; mobile only */
+.end-head-scores-btn {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  grid-column: 3;
+  justify-self: end;
+  display: none;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.end-head-scores-btn.is-active {
+  background-color: var(--tab-active-bg);
+  color: var(--tab-active-fg);
+}
+
+/* Final score section */
+.end-final-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.end-final-header {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+  gap: 0;
+}
+
+.end-final-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+  line-height: 16px;
+  letter-spacing: -0.36px;
+  margin: 0;
+}
+
+.end-final-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.end-final-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Copy results pill */
+.end-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  height: 32px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-2);
+  letter-spacing: -0.36px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.end-copy-btn:hover {
+  background-color: var(--hover-bg);
+}
+
+.end-copy-btn:active {
+  transform: scale(0.96);
+}
+
+/* Play Again pill */
+.end-play-again-btn {
+  box-sizing: border-box;
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.end-play-again-btn:hover {
+  background-color: var(--btn-hover);
+}
+
+.end-play-again-btn:active {
+  transform: scale(0.98);
+}

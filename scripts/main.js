@@ -224,13 +224,31 @@ function updateHomePB() {
   if (el) el.textContent = pb !== null ? `Personal best: ${pb.toFixed(2)}` : '';
 }
 
+// ── Theme ───────────────────────────────────────────────────────────────────
+function applyTheme(dark) {
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const iconLight = document.getElementById('theme-icon-light');
+  const iconDark  = document.getElementById('theme-icon-dark');
+  if (iconLight) iconLight.style.display = dark ? 'none' : '';
+  if (iconDark)  iconDark.style.display  = dark ? '' : 'none';
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved ? saved === 'dark' : prefersDark);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Sync theme icons now that DOM is ready
+  applyTheme(document.documentElement.dataset.theme === 'dark');
+
   document.getElementById('total-rounds').textContent = TOTAL_ROUNDS;
   const dayNumberEl = document.getElementById('day-number');
   if (dayNumberEl) dayNumberEl.textContent = `#${getDayNumber()}`;
   updateDailyStatus();
   initCookieBanner();
-  showScreen('home-screen');
+  showScreen('home-screen', { focusHeading: false });
 
   const isSafari =
     /Safari/i.test(navigator.userAgent) &&
@@ -321,17 +339,28 @@ document.addEventListener('DOMContentLoaded', () => {
     .addEventListener('click', toggleEndScores);
 
   document.getElementById('round-results').addEventListener('click', (e) => {
-    const btn = e.target.closest('.round-result-toggle');
+    const btn = e.target.closest('.round-result-top');
     if (!btn) return;
     const card = btn.closest('.round-result');
-    const details = card?.querySelector('.result-details');
-    if (!details) return;
+    const wrap = card?.querySelector('.result-details-wrap');
+    if (!wrap) return;
     const expanded = btn.getAttribute('aria-expanded') === 'true';
     const next = !expanded;
     btn.setAttribute('aria-expanded', String(next));
-    details.hidden = !next;
-    card.classList.toggle('is-open', next);
+    wrap.setAttribute('aria-hidden', String(!next));
     btn.setAttribute('aria-label', next ? 'Hide round details' : 'Show round details');
+
+    if (next) {
+      // Un-hide, force reflow so the browser sees 0fr before transitioning to 1fr
+      wrap.style.display = 'grid';
+      void wrap.offsetWidth;
+      card.classList.add('is-open');
+    } else {
+      card.classList.remove('is-open');
+      wrap.addEventListener('transitionend', () => {
+        if (!card.classList.contains('is-open')) wrap.style.display = 'none';
+      }, { once: true });
+    }
   });
 
   bpmGuessInput.addEventListener('keypress', function (event) {
@@ -349,6 +378,22 @@ document.addEventListener('DOMContentLoaded', () => {
   );
 
   endGameButton.addEventListener('click', endGame);
+
+  document.getElementById('toggle-theme').addEventListener('click', () => {
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    applyTheme(!isDark);
+  });
+
+  (function attachDailyBtnGlow() {
+    const btn = document.getElementById('start-daily');
+    if (!btn) return;
+    btn.addEventListener('mousemove', (e) => {
+      const r = btn.getBoundingClientRect();
+      btn.style.setProperty('--mouse-x', `${((e.clientX - r.left) / r.width) * 100}%`);
+      btn.style.setProperty('--mouse-y', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+  })();
 
   document.getElementById('open-about').addEventListener('click', () => {
     showModal(getScoringHTML());
@@ -384,9 +429,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   initHighScoreStickyTabs();
+
+  // Open scores panel by default on desktop
+  if (!window.matchMedia('(max-width: 800px)').matches) {
+    toggleHomeScores();
+  }
 });
 
-function showScreen(screenId) {
+function showScreen(screenId, options = {}) {
+  const { focusHeading = true } = options;
+
   document.querySelectorAll('.screen').forEach((screen) => {
     screen.classList.remove('active');
     screen.style.display = 'none';
@@ -402,7 +454,7 @@ function showScreen(screenId) {
 
   // Move focus to the first heading for screen reader context.
   // game-area manages its own focus via bpmGuessInput.focus() in startRound().
-  if (screenId !== 'game-area') {
+  if (focusHeading && screenId !== 'game-area') {
     const heading = activeScreen.querySelector('h1, h2, h3');
     if (heading) {
       heading.setAttribute('tabindex', '-1');
@@ -840,7 +892,7 @@ function showFinalScreen() {
         const grade = getGrade(result.score);
         const rid = `end-round-${result.round}`;
         return `<div class="round-result">
-                <div class="round-result-top">
+                <button type="button" class="round-result-top" aria-expanded="false" aria-controls="${rid}" aria-label="Show round details">
                     <div class="round-result-score-block">
                         <p class="round-result-label">Round ${result.round}</p>
                         <div class="round-result-score-row">
@@ -848,11 +900,10 @@ function showFinalScreen() {
                             <span class="round-grade-badge grade-${grade}">${grade}</span>
                         </div>
                     </div>
-                    <button type="button" class="round-result-toggle" aria-expanded="false" aria-controls="${rid}" aria-label="Show round details">
-                        <i class="ph ph-caret-down round-result__caret" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <div class="result-details" id="${rid}" hidden>
+                    <i class="ph ph-caret-down round-result__caret" aria-hidden="true"></i>
+                </button>
+                <div class="result-details-wrap" aria-hidden="true">
+                <div class="result-details" id="${rid}">
                     <div class="result-item">
                         <span class="result-label">Actual BPM</span>
                         <span class="result-value">${result.actualBPM}</span>
@@ -865,6 +916,7 @@ function showFinalScreen() {
                         <span class="result-label">Time</span>
                         <span class="result-value">${result.timeTaken.toFixed(2)}s</span>
                     </div>
+                </div>
                 </div>
             </div>`;
       })
@@ -1079,19 +1131,23 @@ function toggleHomeScores() {
   }
 }
 
-function staggerHomeScoreItems() {
-  const items = document.querySelectorAll(
-    '#home-scores-list .home-score-entry',
-  );
+function staggerScoreItems(listId) {
+  const items = document.querySelectorAll(`#${listId} .home-score-entry`);
   requestAnimationFrame(() => {
     items.forEach((el, i) => {
       el.style.transitionDelay = `${i * 40}ms`;
       el.classList.add('is-visible');
     });
+  });
+}
+
+function staggerHomeScoreItems() {
+  staggerScoreItems('home-scores-list');
+  requestAnimationFrame(() =>
     requestAnimationFrame(() =>
       refreshHighScoreStickyPin(document.getElementById('home-scores-panel')),
-    );
-  });
+    ),
+  );
 }
 
 function resetHomeScorePanel() {
@@ -1215,7 +1271,7 @@ async function renderTodaysScore(
       list.innerHTML =
         '<li class="home-score-empty">No scores yet — be the first!</li>';
       if (elementId === 'home-scores-list') staggerHomeScoreItems();
-      return;
+      return; // empty state has no entries to stagger
     }
 
     snapshot.docs.forEach((doc, i) => {
@@ -1243,7 +1299,11 @@ async function renderTodaysScore(
       list.appendChild(li);
     });
 
-    if (elementId === 'home-scores-list') staggerHomeScoreItems();
+    if (elementId === 'home-scores-list') {
+      staggerHomeScoreItems();
+    } else {
+      staggerScoreItems(elementId);
+    }
   } catch (error) {
     if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;
@@ -1400,6 +1460,7 @@ async function fetchAndDisplayHighScores(
             `;
       list.appendChild(li);
     });
+    staggerScoreItems(elementId);
   } catch (error) {
     if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;

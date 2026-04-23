@@ -1,0 +1,230 @@
+:root {
+  /* Tailwind Neutral palette */
+  --n-50: #fafafa;
+  --n-100: #f5f5f5;
+  --n-200: #e5e5e5;
+  --n-300: #d4d4d4;
+  --n-400: #a3a3a3;
+  --n-500: #737373;
+  --n-600: #525252;
+  --n-700: #404040;
+  --n-800: #262626;
+  --n-900: #171717;
+  --n-950: #0a0a0a;
+
+  /* Semantic tokens — light mode */
+  --bg: var(--n-100); /* page / screen background */
+  --surface: #ffffff; /* card surface */
+  --surface-2: var(--n-100); /* panel / raised bg (scores, hover) */
+  --border: var(--n-200); /* default border */
+  --border-strong: var(--n-300); /* prominent border, separators */
+  --text: var(--n-900); /* primary text */
+  --text-rgb: 23, 23, 23; /* rgb form of --text for alpha usage */
+  --text-2: var(--n-600); /* secondary / label text */
+  --text-3: var(--n-400); /* placeholder / tertiary */
+  --hover-bg: var(--n-200); /* hover bg for inline controls */
+  --score-divider: var(--n-600); /* list-item rules */
+  /* Primary action buttons (Quick Play, Daily, Play Again) */
+  --btn-bg: var(--n-900);
+  --btn-fg: var(--n-50);
+  --btn-hover: var(--n-800);
+  /* Tab pills */
+  --tab-bg: var(--n-300);
+  --tab-fg: var(--n-900);
+  --tab-active-bg: var(--n-900);
+  --tab-active-fg: var(--n-50);
+  --tab-active-hover: var(--n-800);
+  /* Modal surfaces */
+  --modal-surface: #ffffff;
+  --modal-border: var(--n-200);
+  --modal-footer-border: var(--n-200);
+  /* External links */
+  --link: #0070f3;
+  /* Cookie banner */
+  --cookie-bg: var(--n-900);
+  --cookie-fg: var(--n-50);
+  --cookie-border: rgba(255, 255, 255, 0.3);
+  --cookie-link: var(--n-50);
+  --cookie-link-hover: rgba(255, 255, 255, 0.88);
+  --cookie-btn-border: rgba(255, 255, 255, 0.4);
+  --cookie-btn-primary-bg: rgba(255, 255, 255, 0.12);
+  --cookie-btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --cookie-btn-secondary-hover-bg: rgba(255, 255, 255, 0.05);
+  --cookie-focus: var(--n-50);
+  /* Shared layout + motion primitives */
+  --radius-pill: 64px;
+  --motion-standard: cubic-bezier(0.2, 0, 0, 1);
+  --mobile-safe-top: max(24px, env(safe-area-inset-top, 0px));
+  --mobile-safe-left: max(20px, env(safe-area-inset-left, 0px));
+  --mobile-safe-right: max(20px, env(safe-area-inset-right, 0px));
+  --mobile-safe-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  --mobile-safe-bottom-compact: max(16px, env(safe-area-inset-bottom, 0px));
+  --mobile-safe-bottom-panel: max(32px, env(safe-area-inset-bottom, 0px));
+
+  color-scheme: light;
+
+  /* ── Legacy game-screen tokens (body.dark-mode handles the play screens) ── */
+  --background-color: var(--n-50);
+  --text-color: var(--n-900);
+  --border-color: var(--n-900);
+  --button-color: var(--n-900);
+  --button-text-color: var(--n-50);
+  --input-background: var(--n-50);
+  --active-color: var(--n-900);
+  --inactive-color: var(--n-50);
+  --gray: var(--n-500);
+  --light-gray: var(--n-300);
+  --very-light-gray: var(--n-100);
+}
+
+/* ── Dark theme ── applied via JS + localStorage; respects prefers-color-scheme on first visit */
+[data-theme='dark'] {
+  --bg: var(--n-950);
+  --surface: var(--n-900);
+  --surface-2: var(--n-800);
+  --border: var(--n-700);
+  --border-strong: var(--n-700);
+  --text: var(--n-50);
+  --text-rgb: 250, 250, 250;
+  --text-2: var(--n-400);
+  --text-3: var(--n-600);
+  --hover-bg: var(--n-700);
+  --score-divider: var(--n-700);
+  --btn-bg: var(--n-50);
+  --btn-fg: var(--n-900);
+  --btn-hover: var(--n-200);
+  --tab-bg: var(--n-700);
+  --tab-fg: var(--n-50);
+  --tab-active-bg: var(--n-50);
+  --tab-active-fg: var(--n-900);
+  --tab-active-hover: var(--n-200);
+  --modal-surface: var(--n-900);
+  --modal-border: rgba(255, 255, 255, 0.12);
+  --modal-footer-border: rgba(255, 255, 255, 0.1);
+  --link: #5eb3ff;
+  --cookie-bg: var(--n-800);
+  --cookie-fg: var(--n-50);
+  --cookie-border: rgba(255, 255, 255, 0.25);
+  --cookie-link: var(--n-50);
+  --cookie-link-hover: rgba(255, 255, 255, 0.95);
+  --cookie-btn-border: rgba(255, 255, 255, 0.35);
+  --cookie-btn-primary-bg: rgba(255, 255, 255, 0.16);
+  --cookie-btn-hover-bg: rgba(255, 255, 255, 0.12);
+  --cookie-btn-secondary-hover-bg: rgba(255, 255, 255, 0.08);
+  --cookie-focus: var(--n-50);
+  color-scheme: dark;
+  /* Legacy game-screen tokens: overridden here so rounds (where body.dark-mode is absent)
+     still get correct contrast on the dark body background. */
+  --text-color: var(--n-50);
+  --border-color: rgba(255, 255, 255, 0.35);
+  --button-color: var(--n-50);
+  --button-text-color: var(--n-900);
+  --active-color: var(--n-50);
+  --gray: rgba(255, 255, 255, 0.45);
+  --light-gray: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth theme transitions on key surfaces */
+.home-layout,
+.home-scores-panel,
+.end-card,
+.end-scores-panel,
+.modal-content,
+.hs-tabs-sticky {
+  transition:
+    background-color 0.5s ease,
+    border-color 0.5s ease,
+    color 0.5s ease;
+}
+
+/* Hide spin buttons in Webkit browsers (Chrome, Safari, Edge) */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spin buttons in Firefox */
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Hide spin buttons in Internet Explorer and old Edge */
+input[type='number'] {
+  appearance: textfield;
+  -ms-appearance: textfield;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-color);
+  background-color: var(--bg);
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
+  overscroll-behavior: none;
+  line-height: 1.6;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Links */
+a {
+  color: var(--gray);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--gray);
+  text-decoration: underline;
+}
+
+h2 {
+  font-weight: 400;
+}
+
+/* General Styles for Screens */
+.screen {
+  display: none;
+  overflow-y: auto;
+  height: 100dvh;
+  transition:
+    opacity 0.35s ease-in-out,
+    transform 0.35s ease-in-out;
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Toolbar */
+.toolbar {
+  padding: 8px 16px;
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1rem;
+  color: var(--text-color);
+  font-weight: 400;
+}
