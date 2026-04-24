@@ -42,6 +42,7 @@ let gameMode = 'quick'; // 'quick' | 'daily'
 let dailyBPMs = [];
 let qualifiesAllTime = false;
 let qualifiesDaily = false;
+let mySubmittedScore = null; // { name, score } set after a successful high score submission
 
 const LOOKAHEAD = 0.1; // seconds ahead to schedule audio
 const SCHEDULE_INTERVAL = 25; // ms between scheduler checks
@@ -861,6 +862,7 @@ async function submitHighScoreCheck() {
         addDailyHighScore(playerName, totalScore, playerUrl, getDayNumber()),
       );
     await Promise.all(submissions);
+    mySubmittedScore = { name: playerName, score: totalScore };
   } catch (error) {
     console.error('Error adding high score:', error);
   } finally {
@@ -884,6 +886,8 @@ function showFinalScreen() {
   if (endTgl) {
     endTgl.classList.remove('is-active');
     endTgl.setAttribute('aria-pressed', 'false');
+    const mobile = window.matchMedia('(max-width: 800px)').matches;
+    endTgl.classList.toggle('has-badge', !!(mySubmittedScore && mobile));
   }
   if (endPanel) {
     const mobile = window.matchMedia('(max-width: 800px)').matches;
@@ -1021,6 +1025,7 @@ function toggleEndScores() {
   } else {
     container.classList.add('end-scores-open');
     btn.classList.add('is-active');
+    btn.classList.remove('has-badge');
     btn.setAttribute('aria-pressed', 'true');
     panel.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => {
@@ -1186,6 +1191,18 @@ function staggerScoreItems(listId) {
   });
 }
 
+function scrollMineIntoView(listId) {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  const mine = list.querySelector('.is-mine');
+  if (!mine) return;
+  const items = list.querySelectorAll('.home-score-entry');
+  const idx = Array.from(items).indexOf(mine);
+  // Wait for the stagger to reveal this specific row before scrolling
+  const delay = idx * 40 + 220;
+  setTimeout(() => mine.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), delay);
+}
+
 function staggerHomeScoreItems() {
   staggerScoreItems('home-scores-list');
   requestAnimationFrame(() =>
@@ -1322,8 +1339,11 @@ async function renderTodaysScore(
 
     snapshot.docs.forEach((doc, i) => {
       const data = doc.data();
+      const isMe = mySubmittedScore &&
+        data.name === mySubmittedScore.name &&
+        data.score.toFixed(2) === mySubmittedScore.score.toFixed(2);
       const li = document.createElement('li');
-      li.className = 'home-score-entry';
+      li.className = 'home-score-entry' + (isMe ? ' is-mine' : '');
       let urlHTML = '';
       if (data.url && data.url.trim()) {
         const urlStr = prependHttps(data.url.trim());
@@ -1332,6 +1352,7 @@ async function renderTodaysScore(
           urlHTML = `<a class="home-score-url" href="${urlStr}" target="_blank" rel="noopener">${hostname}</a>`;
         }
       }
+      const youPill = isMe ? '<span class="home-score-you">You</span>' : '';
       li.innerHTML = `
                 <div class="home-score-left">
                     <span class="home-score-rank">${i + 1}.</span>
@@ -1339,6 +1360,7 @@ async function renderTodaysScore(
                         <span class="home-score-name">${data.name}</span>
                         ${urlHTML}
                     </div>
+                    ${youPill}
                 </div>
                 <span class="home-score-value">${data.score.toFixed(2)}</span>
             `;
@@ -1350,6 +1372,7 @@ async function renderTodaysScore(
     } else {
       staggerScoreItems(elementId);
     }
+    scrollMineIntoView(elementId);
   } catch (error) {
     if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;
@@ -1405,6 +1428,7 @@ function resetGame() {
   dailyBPMs = [];
   qualifiesAllTime = false;
   qualifiesDaily = false;
+  mySubmittedScore = null;
 
   // Reset scores panel so it re-fetches fresh data next open
   homeScoresLoaded = false;
@@ -1480,8 +1504,11 @@ async function fetchAndDisplayHighScores(elementId, listRequestId = null) {
     }
     querySnapshot.docs.forEach((doc, i) => {
       const data = doc.data();
+      const isMe = mySubmittedScore &&
+        data.name === mySubmittedScore.name &&
+        data.score.toFixed(2) === mySubmittedScore.score.toFixed(2);
       const li = document.createElement('li');
-      li.className = 'home-score-entry';
+      li.className = 'home-score-entry' + (isMe ? ' is-mine' : '');
       let urlHTML = '';
       if (data.url && data.url.trim()) {
         const urlStr = prependHttps(data.url.trim());
@@ -1490,6 +1517,7 @@ async function fetchAndDisplayHighScores(elementId, listRequestId = null) {
           urlHTML = `<a class="home-score-url" href="${urlStr}" target="_blank" rel="noopener">${hostname}</a>`;
         }
       }
+      const youPill = isMe ? '<span class="home-score-you">You</span>' : '';
       li.innerHTML = `
                 <div class="home-score-left">
                     <span class="home-score-rank">${i + 1}.</span>
@@ -1497,12 +1525,14 @@ async function fetchAndDisplayHighScores(elementId, listRequestId = null) {
                         <span class="home-score-name">${data.name}</span>
                         ${urlHTML}
                     </div>
+                    ${youPill}
                 </div>
                 <span class="home-score-value">${data.score.toFixed(2)}</span>
             `;
       list.appendChild(li);
     });
     staggerScoreItems(elementId);
+    scrollMineIntoView(elementId);
   } catch (error) {
     if (listRequestId != null && listRequestId !== _endListRequestId) {
       return;

@@ -414,6 +414,62 @@
   flex-shrink: 0;
 }
 
+/* "You" row highlight */
+.home-score-entry.is-mine {
+  background: rgba(245, 158, 11, 0.07);
+  border-radius: 8px;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-bottom-color: transparent;
+}
+
+[data-theme="dark"] .home-score-entry.is-mine {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* "You" pill */
+.home-score-you {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 40px;
+  padding: 1px 8px;
+  line-height: 18px;
+}
+
+/* Mobile badge on "See scores" button */
+.end-head-scores-btn {
+  position: relative;
+}
+
+.end-head-scores-btn.has-badge::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: badge-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .end-head-scores-btn.has-badge::after {
+    animation: none;
+  }
+}
+
 .home-score-loading,
 .home-score-empty {
   padding: 24px 0;
