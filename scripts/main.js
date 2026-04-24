@@ -502,11 +502,13 @@ function startGameCountdown() {
   changeBackgroundColor(true);
   let count = 3;
   countdownArea.textContent = 'Get ready...';
+  triggerAnim(countdownArea, 'pop');
   isCountdownActive = true;
 
   countInterval = setInterval(() => {
     if (count > 0) {
       countdownArea.textContent = count;
+      triggerAnim(countdownArea, 'pop');
       count--;
     } else {
       clearInterval(countInterval);
@@ -709,7 +711,10 @@ function showIntermission() {
     count--;
     const countdownEl = document.querySelector('.intermission-countdown');
     if (count > 0) {
-      if (countdownEl) countdownEl.textContent = count;
+      if (countdownEl) {
+        countdownEl.textContent = count;
+        triggerAnim(countdownEl, 'tick');
+      }
     } else {
       clearInterval(intermissionInterval);
       changeBackgroundColor(false);
@@ -1406,6 +1411,12 @@ async function copyDailyResult(result) {
   } catch (e) {
     console.error('Copy failed', e);
   }
+}
+
+function triggerAnim(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
 }
 
 function animateCount(el, target, duration = 600) {

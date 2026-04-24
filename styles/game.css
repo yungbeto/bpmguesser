@@ -88,7 +88,10 @@
     line-height: 2.2rem;
   }
 
-  .countdown,
+  .countdown {
+    font-size: 2.2rem;
+  }
+
   .intermission {
     font-size: 1.4rem;
     color: var(--background-color);
@@ -562,4 +565,87 @@ body.dark-mode #skip-high-score {
 .small-link i {
   font-size: 13px;
   vertical-align: middle;
+}
+
+/* ===== TRANSITION SCREEN ANIMATIONS ===== */
+
+/* Countdown: each number/text pops in with scale + blur */
+@keyframes countdown-pop {
+  from {
+    opacity: 0;
+    transform: scale(1.5);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+.countdown.pop {
+  animation: countdown-pop 0.45s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Intermission: sections stagger in */
+@keyframes intermission-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intermission-result {
+  animation: intermission-fade-up 0.4s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.intermission-grade {
+  animation: intermission-fade-up 0.3s cubic-bezier(0.2, 0, 0, 1) 0.25s both;
+}
+
+.intermission-separator {
+  animation: intermission-fade-up 0.35s cubic-bezier(0.2, 0, 0, 1) 0.1s both;
+}
+
+.intermission-next {
+  animation: intermission-fade-up 0.35s cubic-bezier(0.2, 0, 0, 1) 0.2s both;
+}
+
+/* Intermission countdown: each tick pops */
+@keyframes tick-pop {
+  from {
+    opacity: 0.3;
+    transform: scale(1.25);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intermission-countdown.tick {
+  animation: tick-pop 0.3s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown.pop,
+  .intermission-countdown.tick {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .intermission-result,
+  .intermission-grade,
+  .intermission-separator,
+  .intermission-next {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
