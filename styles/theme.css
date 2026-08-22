@@ -54,6 +54,8 @@
   /* Shared layout + motion primitives */
   --radius-pill: 64px;
   --motion-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-panel: 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-panel-exit: 0.16s cubic-bezier(0.4, 0, 1, 1);
   --mobile-safe-top: max(24px, env(safe-area-inset-top, 0px));
   --mobile-safe-left: max(20px, env(safe-area-inset-left, 0px));
   --mobile-safe-right: max(20px, env(safe-area-inset-right, 0px));

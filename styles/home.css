@@ -12,8 +12,14 @@
   /* Center the card via padding-left so it can animate (margin: auto can't) */
   padding-left: max(16px, calc((100% - 428px) / 2));
   transition:
-    padding-left 0.4s var(--motion-standard),
+    padding-left var(--motion-panel),
     background-color 0.2s ease;
+}
+
+.home-wrapper.scores-open--instant,
+.home-wrapper.scores-open--instant .home-layout,
+.home-wrapper.scores-open--instant .home-scores-panel {
+  transition: none !important;
 }
 
 .home-wrapper.scores-open {
@@ -141,19 +147,37 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-2);
-  flex: 0;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 0;
+  opacity: 0;
   overflow: hidden;
   pointer-events: none;
   transition:
-    flex 0.4s var(--motion-standard),
+    max-width var(--motion-panel),
+    opacity 0.24s ease 0.04s,
     background-color 0.2s ease;
 }
 
+.home-scores-panel.is-animating {
+  will-change: max-width, left;
+}
+
 .home-wrapper.scores-open .home-scores-panel {
-  flex: 1;
+  max-width: 640px;
+  opacity: 1;
   pointer-events: auto;
   overflow-y: auto;
+}
+
+.home-scores-panel.is-closing .home-scores-header,
+.home-scores-panel.is-closing .hs-tabs-sticky,
+.home-scores-panel.is-closing .home-score-entry {
+  opacity: 0;
+  transform: translateY(-6px);
+  filter: blur(2px);
+  transition-duration: var(--motion-panel-exit);
+  transition-delay: 0s;
 }
 
 /* Back button — desktop hidden, mobile visible */
@@ -197,23 +221,28 @@
   flex-shrink: 0;
   opacity: 0;
   transform: translateY(8px);
+  filter: blur(4px);
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity 0.28s var(--motion-standard),
+    transform 0.28s var(--motion-standard),
+    filter 0.28s var(--motion-standard);
 }
 
 #home-scores-panel .home-scores-header.is-visible {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
 }
 
 #home-scores-panel .hs-tabs-sticky {
   opacity: 0;
   transform: translateY(8px);
+  filter: blur(4px);
   /* Entrance animation runs alongside box-shadow / padding-top pin transitions */
   transition:
-    opacity 0.25s ease 0.06s,
-    transform 0.25s ease 0.06s,
+    opacity 0.28s var(--motion-standard) 0.06s,
+    transform 0.28s var(--motion-standard) 0.06s,
+    filter 0.28s var(--motion-standard) 0.06s,
     box-shadow 0.2s ease,
     padding-top 0.2s ease;
 }
@@ -221,6 +250,7 @@
 #home-scores-panel .hs-tabs-sticky.is-visible {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
 }
 
 .home-scores-header {
@@ -236,7 +266,9 @@
   margin: 0;
   padding: 0 0 8px;
 
-  transition: all 0.2s ease-in-out;
+  transition:
+    box-shadow 0.2s ease,
+    padding-top 0.2s ease;
 }
 
 .hs-tabs-sticky.is-pinned {
@@ -317,6 +349,20 @@
   .hs-tabs-sticky {
     transition: none;
   }
+
+  .home-wrapper,
+  .home-layout,
+  .home-scores-panel,
+  .home-scores-panel .home-scores-header,
+  .home-scores-panel .hs-tabs-sticky,
+  .home-scores-panel .home-score-entry,
+  .end-scores-panel {
+    transition: none !important;
+  }
+
+  .home-scores-panel.is-animating {
+    will-change: auto;
+  }
 }
 
 /* Score list */
@@ -345,15 +391,18 @@
 .end-scores-panel .home-score-entry {
   opacity: 0;
   transform: translateY(6px);
+  filter: blur(2px);
   transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+    opacity 0.2s var(--motion-standard),
+    transform 0.2s var(--motion-standard),
+    filter 0.2s var(--motion-standard);
 }
 
 .home-scores-panel .home-score-entry.is-visible,
 .end-scores-panel .home-score-entry.is-visible {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
 }
 
 .home-score-left {
@@ -589,7 +638,8 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--surface-2);
-    transition: left 0.35s var(--motion-standard);
+    opacity: 1;
+    transition: left var(--motion-panel);
   }
 
   .home-wrapper.scores-open .home-scores-panel {

@@ -450,9 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initHighScoreStickyTabs();
 
-  // Open scores panel by default on desktop
-  if (!window.matchMedia('(max-width: 800px)').matches) {
-    toggleHomeScores();
+  // Open scores panel by default on desktop (no entrance animation on first paint)
+  if (!isMobileScoresLayout()) {
+    toggleHomeScores({ instant: true });
   }
 });
 
@@ -488,16 +488,7 @@ function startGameCountdown() {
   // Ensure home scores panel is closed before game starts
   const wrapper = document.getElementById('home-wrapper');
   if (wrapper && wrapper.classList.contains('scores-open')) {
-    clearTimeout(_scoresPanelCloseReset);
-    _scoresPanelCloseReset = undefined;
-    resetHomeScorePanel();
-    wrapper.style.transition = '';
-    const hsPanel = document.getElementById('home-scores-panel');
-    if (hsPanel) hsPanel.style.background = '';
-    wrapper.classList.remove('scores-open');
-    document.getElementById('toggle-scores')?.classList.remove('is-active');
-    hsPanel?.setAttribute('aria-hidden', 'true');
-    resetHighScorePanelScroll(hsPanel);
+    toggleHomeScores({ instant: true });
   }
   changeBackgroundColor(true);
   let count = 3;
@@ -1013,7 +1004,7 @@ function setupShareButton() {
 }
 
 function toggleEndScores() {
-  if (!window.matchMedia('(max-width: 800px)').matches) {
+  if (!isMobileScoresLayout()) {
     return;
   }
   const container = document.getElementById('end-container');
@@ -1022,17 +1013,23 @@ function toggleEndScores() {
   if (!container || !btn || !panel) return;
   const open = container.classList.contains('end-scores-open');
   if (open) {
+    panel.classList.add('is-closing');
+    beginScoresPanelAnimation(panel);
     container.classList.remove('end-scores-open');
     btn.classList.remove('is-active');
     btn.setAttribute('aria-pressed', 'false');
     panel.setAttribute('aria-hidden', 'true');
-    resetHighScorePanelScroll(panel);
+    afterScoresPanelTransition(panel, () => {
+      panel.classList.remove('is-closing');
+      resetHighScorePanelScroll(panel);
+    });
   } else {
     container.classList.add('end-scores-open');
     btn.classList.add('is-active');
     btn.classList.remove('has-badge');
     btn.setAttribute('aria-pressed', 'true');
     panel.setAttribute('aria-hidden', 'false');
+    beginScoresPanelAnimation(panel);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => refreshHighScoreStickyPin(panel));
     });
@@ -1114,55 +1111,106 @@ function initHighScoreStickyTabs() {
 // ===== HOME HIGH SCORES PANEL =====
 let homeScoresLoaded = false;
 let activeScoreTab = 'alltime';
-let _scoresPanelTimer1, _scoresPanelTimer2, _scoresPanelCloseReset;
+let _scoresPanelTimer1, _scoresPanelTimer2, _scoresPanelCloseReset = null;
+const SCORES_PANEL_MS = 460;
 
-function toggleHomeScores() {
+function isMobileScoresLayout() {
+  return window.matchMedia('(max-width: 800px)').matches;
+}
+
+function afterScoresPanelTransition(panel, callback) {
+  if (!panel) {
+    callback();
+    return;
+  }
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    panel.removeEventListener('transitionend', onEnd);
+    clearTimeout(fallback);
+    callback();
+  };
+  const onEnd = (event) => {
+    if (event.target !== panel) return;
+    if (event.propertyName !== 'max-width' && event.propertyName !== 'left') return;
+    finish();
+  };
+  panel.addEventListener('transitionend', onEnd);
+  const fallback = setTimeout(finish, SCORES_PANEL_MS);
+}
+
+function beginScoresPanelAnimation(panel) {
+  if (!panel) return;
+  panel.classList.add('is-animating');
+  afterScoresPanelTransition(panel, () => {
+    panel.classList.remove('is-animating');
+  });
+}
+
+function toggleHomeScores({ instant = false } = {}) {
   const wrapper = document.getElementById('home-wrapper');
   const btn = document.getElementById('toggle-scores');
   const panel = document.getElementById('home-scores-panel');
 
   clearTimeout(_scoresPanelTimer1);
   clearTimeout(_scoresPanelTimer2);
-  clearTimeout(_scoresPanelCloseReset);
+  if (_scoresPanelCloseReset) {
+    clearTimeout(_scoresPanelCloseReset);
+    _scoresPanelCloseReset = null;
+  }
 
   const isCurrentlyOpen = wrapper.classList.contains('scores-open');
 
   if (isCurrentlyOpen) {
-    // Suppress the background color wave on close — snap bg instantly, only animate padding-left
-    wrapper.style.transition = 'padding-left 0.4s cubic-bezier(0.2, 0, 0, 1)';
-    panel.style.background = 'transparent';
-    void wrapper.offsetWidth; // force reflow so snap takes effect before class removal
+    panel.classList.add('is-closing');
+    if (!instant) beginScoresPanelAnimation(panel);
 
     wrapper.classList.remove('scores-open');
     btn.classList.remove('is-active');
     btn.setAttribute('aria-pressed', 'false');
     panel.setAttribute('aria-hidden', 'true');
 
-    // Defer reset until the sheet finishes (mobile: slide 0.35s; desktop: flex 0.4s). If we
-    // reset immediately, header/list snap invisible while only the back row still moves with the
-    // panel, which reads as a mismatched unmount.
-    _scoresPanelCloseReset = setTimeout(() => {
-      _scoresPanelCloseReset = undefined;
+    let closed = false;
+    const finishClose = () => {
+      if (closed) return;
+      closed = true;
+      clearTimeout(_scoresPanelCloseReset);
+      _scoresPanelCloseReset = null;
+      panel.classList.remove('is-closing');
       resetHomeScorePanel();
       resetHighScorePanelScroll(panel);
-      wrapper.style.transition = '';
-      panel.style.background = '';
-    }, 420);
+    };
+
+    if (instant) {
+      finishClose();
+      return;
+    }
+
+    _scoresPanelCloseReset = setTimeout(finishClose, SCORES_PANEL_MS);
+    afterScoresPanelTransition(panel, () => {
+      clearTimeout(_scoresPanelCloseReset);
+      finishClose();
+    });
   } else {
+    if (instant) wrapper.classList.add('scores-open--instant');
+
     wrapper.classList.add('scores-open');
     btn.classList.add('is-active');
     btn.setAttribute('aria-pressed', 'true');
     panel.setAttribute('aria-hidden', 'false');
+
+    if (!instant) beginScoresPanelAnimation(panel);
 
     const alreadyLoaded = homeScoresLoaded;
     if (!homeScoresLoaded) {
       fetchAndRenderHomeScores(); // calls staggerHomeScoreItems internally after render
       homeScoresLoaded = true;
     }
-    // Desktop: delay until card slide animation finishes. Mobile: short delay (full-screen drill).
-    const isMobileHome = window.matchMedia('(max-width: 767px)').matches;
-    const headerRevealMs = isMobileHome ? 60 : 320;
-    const staggerDelayMs = isMobileHome ? 100 : 180;
+
+    const isMobileHome = isMobileScoresLayout();
+    const headerRevealMs = instant ? 0 : isMobileHome ? 80 : 260;
+    const staggerDelayMs = instant ? 0 : isMobileHome ? 90 : 160;
     _scoresPanelTimer1 = setTimeout(() => {
       const header = document.querySelector(
         '#home-scores-panel .home-scores-header',
@@ -1179,6 +1227,12 @@ function toggleHomeScores() {
         );
       }
     }, headerRevealMs);
+
+    if (instant) {
+      requestAnimationFrame(() => {
+        wrapper.classList.remove('scores-open--instant');
+      });
+    }
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => refreshHighScoreStickyPin(panel));
@@ -1445,15 +1499,13 @@ function resetGame() {
   homeScoresLoaded = false;
   clearTimeout(_scoresPanelTimer1);
   clearTimeout(_scoresPanelTimer2);
-  clearTimeout(_scoresPanelCloseReset);
+  if (_scoresPanelCloseReset) {
+    clearTimeout(_scoresPanelCloseReset);
+    _scoresPanelCloseReset = null;
+  }
   const wrapper = document.getElementById('home-wrapper');
   if (wrapper && wrapper.classList.contains('scores-open')) {
-    resetHomeScorePanel();
-    const hp = document.getElementById('home-scores-panel');
-    resetHighScorePanelScroll(hp);
-    wrapper.classList.remove('scores-open');
-    document.getElementById('toggle-scores')?.classList.remove('is-active');
-    hp?.setAttribute('aria-hidden', 'true');
+    toggleHomeScores({ instant: true });
   }
 
   const endC = document.getElementById('end-container');

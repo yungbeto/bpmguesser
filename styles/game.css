@@ -75,8 +75,22 @@
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    transition: left 0.35s var(--motion-standard);
+    transition: left var(--motion-panel);
     box-sizing: border-box;
+  }
+
+  .end-scores-panel.is-animating {
+    will-change: left;
+  }
+
+  .end-scores-panel.is-closing .home-scores-header,
+  .end-scores-panel.is-closing .hs-tabs-sticky,
+  .end-scores-panel.is-closing .home-score-entry {
+    opacity: 0;
+    transform: translateY(-6px);
+    filter: blur(2px);
+    transition-duration: var(--motion-panel-exit);
+    transition-delay: 0s;
   }
 
   .end-container.end-scores-open .end-scores-panel {
