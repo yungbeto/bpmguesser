@@ -164,7 +164,7 @@
 }
 
 .home-wrapper.scores-open .home-scores-panel {
-  max-width: 640px;
+  max-width: 100%;
   opacity: 1;
   pointer-events: auto;
   overflow-y: auto;
