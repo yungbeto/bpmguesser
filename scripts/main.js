@@ -6,43 +6,52 @@ import {
   addDailyHighScore,
   LEADERBOARD_TOP_N,
   initFirebaseAnalytics,
+  warmUpFirebase,
 } from './firebase.js';
 import {
-  calculateScore,
   calculateScoreBreakdown,
   generateRandomBPM,
   TIME_PENALTY_THRESHOLD,
   TOTAL_ROUNDS,
+  MAX_TOTAL_SCORE,
   BPM_RANGES,
   getGrade,
+  getGameGrade,
   getDayNumber,
   generateDailyBPMs,
 } from './gameLogic.js';
 import {
-  initAudio,
+  ensureAudio,
   getAudioContext,
   playMetronomeSound,
   updateVisualMetronome,
   changeBackgroundColor,
 } from './audioVisual.js';
+import { celebrate } from './confetti.js';
+import { getDailyKey, getStreaks, recordGame, renderStatsHTML } from './stats.js';
 
-// No client-side profanity filter — enforce via Firestore security rules or a server-side function.
-function containsBadWords(_text) {
-  return false;
-}
+const NAME_MAX = 24;
+const URL_MAX = 200;
 
 let actualBPM,
   startTime,
   timerInterval,
-  schedulerTimeout,
   countInterval,
   intermissionInterval;
+let schedulerTimeout = null; // non-null while a metronome is running
 let nextBeatTime = 0;
 let gameMode = 'quick'; // 'quick' | 'daily'
 let dailyBPMs = [];
+let dailyDate = null; // local date the current daily run started (pins key + day number across midnight)
+let dailyDay = null;
 let qualifiesAllTime = false;
 let qualifiesDaily = false;
+let pendingRanks = { alltime: null, daily: null }; // rank the score would take, from the qualification check
+let submittedBoards = { alltime: false, daily: false }; // so a retry never double-posts
+let myRank = null; // { alltime, daily } after a successful submission
 let mySubmittedScore = null; // { name, score } set after a successful high score submission
+let roundRevealed = false; // true once the first metronome of this game has started
+let gameRecorded = false;
 
 const LOOKAHEAD = 0.1; // seconds ahead to schedule audio
 const SCHEDULE_INTERVAL = 25; // ms between scheduler checks
@@ -66,27 +75,31 @@ const endGameButton = document.getElementById('end-game');
 const submitGuessButton = document.getElementById('submit-guess');
 const timerPenaltyEl = document.getElementById('timer-penalty');
 
-function showModal(html) {
-  const modal = document.getElementById('app-modal');
-  document.getElementById('app-modal-body').innerHTML = html;
-  modal.style.display = 'flex';
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => modal.classList.add('is-open')),
+// ── Game-scoped timers ──────────────────────────────────────────────────────
+// Every one-shot timeout tied to a running game goes through `later` so quitting
+// can cancel all of them (no metronome starting on the results screen).
+const gameTimers = new Set();
+function later(fn, ms) {
+  const id = setTimeout(() => {
+    gameTimers.delete(id);
+    fn();
+  }, ms);
+  gameTimers.add(id);
+  return id;
+}
+function clearGameTimers() {
+  gameTimers.forEach(clearTimeout);
+  gameTimers.clear();
+}
+
+const IN_GAME_SCREENS = ['countdown-screen', 'intermission-screen', 'game-area'];
+function isGameInProgress() {
+  return IN_GAME_SCREENS.some((id) =>
+    document.getElementById(id)?.classList.contains('active'),
   );
 }
 
-function closeModal() {
-  const modal = document.getElementById('app-modal');
-  modal.classList.remove('is-open');
-  modal.addEventListener(
-    'transitionend',
-    () => {
-      if (!modal.classList.contains('is-open')) modal.style.display = 'none';
-    },
-    { once: true },
-  );
-}
-
+// ── Cookie consent ──────────────────────────────────────────────────────────
 const CONSENT_STORAGE_KEY = 'bpmguesser_consent';
 const CONSENT_LEGACY_KEY = 'bpmguesser_cookies_accepted';
 
@@ -147,28 +160,7 @@ function initCookieBanner() {
     });
 }
 
-function getScoringHTML() {
-  return `
-        <h3 class="hero-title" id="app-modal-title"><i class="ph ph-circle"></i> BPM Guesser</h3>
-        <p>Listen to the metronome and guess the BPM. Each round is scored on two things:</p>
-        <p><strong>Accuracy</strong> — Up to 100 points. The closer your guess, the higher your score. A guess more than 20 BPM away scores zero for that round.</p>
-        <p><strong>Speed bonus</strong> — Up to +33 points. The faster you commit to your guess, the more bonus you earn. The bonus decays to zero at 10 seconds, so quick decisions pay off.</p>
-        <p>If you take longer than 3 seconds, you'll lose 0.5 points per second after that. The maximum score per round is 133, and 399 across all three rounds.</p>
-        <h4><i class="ph ph-dot"></i> Game Modes</h4>
-        <p><strong>Daily Challenge</strong> — The same three rounds for everyone, chosen from today's date. You get one run per day and your total is saved for the day's leaderboard.</p>
-        <p><strong>Quick Play</strong> — A new random set every time, with no daily limit. Use it to practice; only Daily Challenge results appear on the "Today's game" board.</p>
-        <p>This game was conceived and developed by <a href="https://robysaavedra.com" target="_blank">Roby Saavedra</a>.</p>
-    `;
-}
-
-function getModeInfoHTML() {
-  return `
-        <h3 class="hero-title" id="app-modal-title">Game Modes</h3>
-        <p><strong>Daily Challenge</strong> — The same three rounds for everyone, chosen from today's date. You get one run per day and your total is saved for the day's leaderboard.</p>
-        <p><strong>Quick Play</strong> — A new random set every time, with no daily limit. Use it to practice; only Daily Challenge results appear on the "Today's game" board.</p>
-    `;
-}
-
+// ── Local persistence ───────────────────────────────────────────────────────
 function getPersonalBest() {
   const val = localStorage.getItem('bpmguesser_pb');
   return val !== null ? parseFloat(val) : null;
@@ -178,26 +170,131 @@ function setPersonalBest(score) {
   localStorage.setItem('bpmguesser_pb', score.toString());
 }
 
-function getDailyKey() {
-  const n = new Date();
-  return `bpmguesser_daily_${n.getFullYear()}${String(n.getMonth() + 1).padStart(2, '0')}${String(n.getDate()).padStart(2, '0')}`;
+function getDailyResult(date = new Date()) {
+  try {
+    return JSON.parse(localStorage.getItem(getDailyKey(date)));
+  } catch {
+    return null;
+  }
 }
 
-function getDailyResult() {
-  const stored = localStorage.getItem(getDailyKey());
-  return stored ? JSON.parse(stored) : null;
+/**
+ * Saved as soon as round 1's tempo is heard (inProgress), after every round, and
+ * at the end — so refreshing mid-run can't buy a replay with known answers.
+ */
+function saveDailyResult(score, results, { inProgress = false } = {}) {
+  localStorage.setItem(
+    getDailyKey(dailyDate || new Date()),
+    JSON.stringify({ score, results, inProgress }),
+  );
 }
 
-function saveDailyResult(score, results) {
-  localStorage.setItem(getDailyKey(), JSON.stringify({ score, results }));
+// ── Sharing ─────────────────────────────────────────────────────────────────
+/**
+ * Accuracy-only emoji, so the row lines up with the "Off by" line beneath it
+ * (grades also include the speed bonus, which made 🎯 mean "fast", not "exact").
+ * 20+ off earns no accuracy points (beyond 20 the round scores zero — MAX_BPM_DIFFERENCE in gameLogic.js).
+ */
+function accuracyEmoji(r) {
+  if (!(r.guessedBPM > 0)) return '⬛';
+  const diff = Math.abs(r.actualBPM - r.guessedBPM);
+  if (diff === 0) return '🎯';
+  if (diff <= 3) return '🟩';
+  if (diff <= 10) return '🟨';
+  if (diff < 20) return '🟧';
+  return '⬛';
+}
+
+function buildShareText({ mode, day, results, total }) {
+  const header =
+    mode === 'daily' ? `🎵 BPM Guesser Daily #${day}` : '🎵 BPM Guesser';
+  const emoji = results.map(accuracyEmoji).join(' ');
+  const offs = results
+    .map((r) =>
+      r.guessedBPM > 0 ? String(Math.abs(r.actualBPM - r.guessedBPM)) : '–',
+    )
+    .join(' · ');
+  const lines = [
+    header,
+    `${emoji}  ${total.toFixed(2)}/${MAX_TOTAL_SCORE}`,
+    `Off by ${offs} BPM`,
+  ];
+  if (mode === 'daily') {
+    const { current } = getStreaks();
+    if (current >= 2) lines.push(`🔥 ${current}-day streak`);
+  }
+  lines.push('https://bpmga.me');
+  return lines.join('\n');
+}
+
+/** Native share sheet on touch devices, clipboard elsewhere. */
+function prefersShareSheet() {
+  return (
+    typeof navigator.share === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches
+  );
+}
+
+async function shareText(text) {
+  if (prefersShareSheet()) {
+    try {
+      await navigator.share({ text });
+      return 'shared';
+    } catch (e) {
+      if (e?.name === 'AbortError') return 'cancelled';
+      // otherwise fall through to clipboard
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
+}
+
+// ── Daily status (home) ─────────────────────────────────────────────────────
+let shownDayNumber = null;
+
+function formatUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const mins = Math.max(1, Math.ceil((midnight - now) / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function updateDailyEyebrow() {
+  const result = getDailyResult();
+  const eyebrowSep = document.getElementById('daily-eyebrow-sep');
+  const eyebrowNext = document.getElementById('daily-eyebrow-thanks');
+  const streakEl = document.getElementById('daily-eyebrow-streak');
+  if (eyebrowSep) eyebrowSep.textContent = result ? '·' : '';
+  if (eyebrowNext)
+    eyebrowNext.textContent = result ? `Next in ${formatUntilMidnight()}` : '';
+  if (streakEl) {
+    const { current } = getStreaks();
+    streakEl.hidden = current < 2;
+    const n = streakEl.querySelector('.daily-eyebrow-streak__count');
+    if (n) n.textContent = current;
+    streakEl.setAttribute('aria-label', `${current}-day streak`);
+  }
 }
 
 function updateDailyStatus() {
+  shownDayNumber = getDayNumber();
+  const dayNumberEl = document.getElementById('day-number');
+  if (dayNumberEl) dayNumberEl.textContent = `#${shownDayNumber}`;
+
   const result = getDailyResult();
   const dailyBtn = document.getElementById('start-daily');
-  const eyebrowSep = document.getElementById('daily-eyebrow-sep');
-  const eyebrowThanks = document.getElementById('daily-eyebrow-thanks');
   if (!dailyBtn) return;
+
+  const tooltip = document.querySelector('.daily-tooltip');
+  if (tooltip)
+    tooltip.textContent = prefersShareSheet() ? 'Share result' : 'Copy details';
 
   if (result) {
     dailyBtn.classList.add('is-played');
@@ -206,29 +303,33 @@ function updateDailyStatus() {
             <span class="home-daily-score-container">
                 <span class="home-daily-score-details">
                     <span class="home-daily-score-label">Your score</span>
-                    <span class="home-daily-score-value">${result.score.toFixed(2)}</span>
+                    <span class="home-daily-score-value">${Number(result.score || 0).toFixed(2)}</span>
                 </span>
                 <i class="ph-bold ph-check home-daily-check"></i>
-                <i class="ph-bold ph-copy home-daily-copy"></i>
+                <i class="ph-bold ${prefersShareSheet() ? 'ph-export' : 'ph-copy'} home-daily-copy"></i>
             </span>
         `;
-    if (eyebrowSep) eyebrowSep.textContent = '·';
-    if (eyebrowThanks) eyebrowThanks.textContent = 'Thanks for playing!';
   } else {
     dailyBtn.classList.remove('is-played');
     dailyBtn.innerHTML = `
             <span class="home-daily-label">Daily Challenge</span>
             <i class="ph-bold ph-arrow-right"></i>
         `;
-    if (eyebrowSep) eyebrowSep.textContent = '';
-    if (eyebrowThanks) eyebrowThanks.textContent = '';
   }
+  updateDailyEyebrow();
 }
 
-function updateHomePB() {
-  const pb = getPersonalBest();
-  const el = document.getElementById('pb-home');
-  if (el) el.textContent = pb !== null ? `Personal best: ${pb.toFixed(2)}` : '';
+/** Keeps "Next in …" fresh and rolls the home screen over at local midnight. */
+function startDailyClock() {
+  const tick = () => {
+    if (!document.getElementById('home-screen').classList.contains('active')) return;
+    if (getDayNumber() !== shownDayNumber) updateDailyStatus();
+    else updateDailyEyebrow();
+  };
+  setInterval(tick, 30_000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) tick();
+  });
 }
 
 // ── Theme ───────────────────────────────────────────────────────────────────
@@ -236,8 +337,8 @@ function applyTheme(dark) {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const iconLight = document.getElementById('theme-icon-light');
   const iconDark = document.getElementById('theme-icon-dark');
-  if (iconLight) iconLight.style.display = dark ? 'none' : '';
-  if (iconDark) iconDark.style.display = dark ? '' : 'none';
+  iconLight?.classList.toggle('is-hidden', dark);
+  iconDark?.classList.toggle('is-hidden', !dark);
 }
 
 (function initTheme() {
@@ -251,72 +352,45 @@ document.addEventListener('DOMContentLoaded', () => {
   applyTheme(document.documentElement.dataset.theme === 'dark');
 
   document.getElementById('total-rounds').textContent = TOTAL_ROUNDS;
-  const dayNumberEl = document.getElementById('day-number');
-  if (dayNumberEl) dayNumberEl.textContent = `#${getDayNumber()}`;
   updateDailyStatus();
+  startDailyClock();
   initCookieBanner();
   showScreen('home-screen', { focusHeading: false });
 
-  const isSafari =
-    /Safari/i.test(navigator.userAgent) &&
-    !/Chrome|CriOS|FxiOS/i.test(navigator.userAgent);
-  const needsGesture =
-    isSafari || /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Fetch Firebase in the background once the page is idle (it's off the critical path).
+  (window.requestIdleCallback || ((cb) => setTimeout(cb, 1500)))(warmUpFirebase);
 
-  if (needsGesture) {
-    const audioPermissionModal = document.getElementById(
-      'audio-permission-modal',
-    );
-    audioPermissionModal.style.display = 'flex';
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() =>
-        audioPermissionModal.classList.add('is-open'),
-      ),
-    );
-    document.getElementById('enable-audio').addEventListener('click', () => {
-      initAudio();
-      audioPermissionModal.classList.remove('is-open');
-      const afterClose = () => {
-        if (!audioPermissionModal.classList.contains('is-open')) {
-          audioPermissionModal.style.display = 'none';
-        }
-      };
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        requestAnimationFrame(afterClose);
-      } else {
-        audioPermissionModal.addEventListener('transitionend', afterClose, {
-          once: true,
-        });
-      }
-    });
-  } else {
-    initAudio();
-  }
-
-  document.getElementById('start-daily').addEventListener('click', () => {
+  document.getElementById('start-daily').addEventListener('click', async () => {
     const existingResult = getDailyResult();
     if (existingResult) {
-      copyDailyResult(existingResult);
+      await shareDailyResult(existingResult);
       return;
     }
+    ensureAudio(); // inside the click gesture, so the browser lets audio play
     gameMode = 'daily';
-    dailyBPMs = generateDailyBPMs();
-    showScreen('countdown-screen');
-    startGameCountdown();
+    dailyDate = new Date();
+    dailyDay = getDayNumber(dailyDate);
+    dailyBPMs = generateDailyBPMs(dailyDay);
+    beginGame();
   });
 
   document.getElementById('start-game').addEventListener('click', () => {
+    ensureAudio();
     gameMode = 'quick';
-    showScreen('countdown-screen');
-    startGameCountdown();
+    dailyDate = null;
+    dailyDay = null;
+    beginGame();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      if (document.getElementById('app-modal').style.display === 'flex') {
-        closeModal();
-      } else {
+      if (isGameInProgress()) {
         endGame();
+      } else if (
+        document.getElementById('home-screen').classList.contains('active') &&
+        document.getElementById('home-wrapper').classList.contains('scores-open')
+      ) {
+        toggleHomeScores();
       }
     }
     if (event.key === ' ' && gameArea.classList.contains('active')) {
@@ -329,6 +403,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document
     .getElementById('submit-score-check')
     .addEventListener('click', submitHighScoreCheck);
+  for (const id of ['player-name-check', 'player-url-check']) {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitHighScoreCheck();
+      }
+    });
+  }
   document
     .getElementById('continue-to-final')
     .addEventListener('click', showFinalScreen);
@@ -336,8 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('skip-high-score').disabled = true;
     showFinalScreen();
   });
-  document.getElementById('play-again').addEventListener('click', resetGame);
-  document.getElementById('go-home').addEventListener('click', resetGame);
+  document.getElementById('play-again').addEventListener('click', () => resetGame());
+  document.getElementById('go-home').addEventListener('click', () => resetGame());
   document
     .getElementById('end-toggle-scores')
     .addEventListener('click', toggleEndScores);
@@ -415,16 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
 
-  document.getElementById('open-about').addEventListener('click', () => {
-    showModal(getScoringHTML());
+  // Scores / stats / about all open in the same off-canvas panel.
+  document.querySelectorAll('[data-panel-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => openPanelView(btn.dataset.panelToggle));
   });
-
-  document
-    .getElementById('toggle-scores')
-    .addEventListener('click', toggleHomeScores);
   document
     .getElementById('close-scores')
-    .addEventListener('click', toggleHomeScores);
+    .addEventListener('click', () => toggleHomeScores());
 
   document
     .getElementById('tab-alltime')
@@ -439,14 +518,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document
     .getElementById('tab-today-end')
     .addEventListener('click', () => switchEndScoreTab('today'));
-
-  document
-    .getElementById('app-modal-confirm')
-    .addEventListener('click', closeModal);
-
-  document.getElementById('app-modal').addEventListener('click', (event) => {
-    if (event.target === document.getElementById('app-modal')) closeModal();
-  });
 
   initHighScoreStickyTabs();
 
@@ -483,6 +554,27 @@ function showScreen(screenId, options = {}) {
   }
 }
 
+// ── Game flow ───────────────────────────────────────────────────────────────
+function resetRunState() {
+  currentRound = 1;
+  totalScore = 0;
+  roundResults = [];
+  roundRevealed = false;
+  gameRecorded = false;
+  qualifiesAllTime = false;
+  qualifiesDaily = false;
+  pendingRanks = { alltime: null, daily: null };
+  submittedBoards = { alltime: false, daily: false };
+  myRank = null;
+  mySubmittedScore = null;
+}
+
+function beginGame() {
+  resetRunState();
+  showScreen('countdown-screen');
+  startGameCountdown();
+}
+
 function startGameCountdown() {
   endGameButton.style.display = 'block';
   // Ensure home scores panel is closed before game starts
@@ -517,14 +609,14 @@ function startRound() {
   if (dailyIndicator) {
     if (gameMode === 'daily') {
       document.getElementById('daily-game-day-number').textContent =
-        `#${getDayNumber()}`;
+        `#${dailyDay}`;
       dailyIndicator.style.display = '';
     } else {
       dailyIndicator.style.display = 'none';
     }
   }
 
-  setTimeout(() => {
+  later(() => {
     const currentRoundDisplay = document.getElementById('current-round');
     if (!currentRoundDisplay) return;
 
@@ -555,17 +647,22 @@ function startRound() {
       if (runningScoreEl) runningScoreEl.style.display = 'none';
     }
 
-    setTimeout(() => {
+    later(() => {
       bpmGuessInput.focus();
       bpmGuessInput.select();
     }, 500);
 
+    if (!roundRevealed) {
+      roundRevealed = true;
+      // The tempo is now audible: from here on, today's daily counts as played.
+      if (gameMode === 'daily') saveDailyResult(0, [], { inProgress: true });
+    }
     startMetronome();
   }, 300);
 }
 
 function startMetronome() {
-  const audioCtx = getAudioContext();
+  const audioCtx = ensureAudio();
   nextBeatTime = audioCtx.currentTime;
   currentBeat = 0;
   schedulerTick();
@@ -583,7 +680,7 @@ function schedulerTick() {
       0,
       (nextBeatTime - audioCtx.currentTime) * 1000,
     );
-    setTimeout(() => updateVisualMetronome(circle1), visualDelay);
+    later(() => updateVisualMetronome(circle1), visualDelay);
 
     nextBeatTime += secondsPerBeat;
     currentBeat++;
@@ -595,6 +692,7 @@ function schedulerTick() {
 function stopMetronome() {
   clearTimeout(schedulerTimeout);
   schedulerTimeout = null;
+  clearGameTimers(); // pending pulses + round-start/focus timers
   resetCircles();
 }
 
@@ -603,6 +701,7 @@ function resetCircles() {
 }
 
 function submitGuess() {
+  if (submitGuessButton.disabled || schedulerTimeout === null) return;
   const guessedBPM = parseInt(bpmGuessInput.value);
   if (isNaN(guessedBPM) || guessedBPM <= 0) {
     bpmGuessInput.classList.add('input-error');
@@ -631,6 +730,12 @@ function submitGuess() {
     timePenalty: breakdown.timePenalty,
   });
 
+  if (gameMode === 'daily') {
+    saveDailyResult(totalScore, roundResults, {
+      inProgress: currentRound < TOTAL_ROUNDS,
+    });
+  }
+
   const runningScoreEl = document.getElementById('running-score');
   const runningScoreValue = document.getElementById('running-score-value');
   if (runningScoreEl && runningScoreValue) {
@@ -639,6 +744,24 @@ function submitGuess() {
   }
 
   showIntermission();
+}
+
+function tempoCompareHTML({ actualBPM: actual, guessedBPM: guess }) {
+  if (!(actual > 0 && guess > 0)) return '';
+  // Clamp absurd guesses so the pulse stays a readable blink.
+  const beat = (bpm) => Math.max(0.12, 60 / bpm).toFixed(4);
+  return `<div class="tempo-compare" aria-hidden="true">
+        <div class="tempo-compare__item">
+            <span class="tempo-dot" style="--beat:${beat(actual)}s"></span>
+            <span class="tempo-compare__label">Actual</span>
+            <span class="tempo-compare__bpm">${actual}</span>
+        </div>
+        <div class="tempo-compare__item">
+            <span class="tempo-dot tempo-dot--guess" style="--beat:${beat(guess)}s"></span>
+            <span class="tempo-compare__label">You</span>
+            <span class="tempo-compare__bpm">${guess}</span>
+        </div>
+    </div>`;
 }
 
 function showIntermission() {
@@ -684,6 +807,7 @@ function showIntermission() {
             </div>
             ${bonusHTML}
             <span class="intermission-detail">${diffText}</span>
+            ${tempoCompareHTML(lastResult)}
         </div>
         <div class="intermission-separator"></div>
         ${nextSection}
@@ -693,10 +817,12 @@ function showIntermission() {
   if (scoreEl) animateCount(scoreEl, lastResult.score);
 
   if (speedBonus > 0) {
-    setTimeout(() => {
+    later(() => {
       document.getElementById('intermission-bonus')?.classList.add('is-visible');
     }, 350);
   }
+
+  if (bpmDiff === 0) later(() => celebrate({ originY: 0.3 }), 250);
 
   intermissionInterval = setInterval(() => {
     count--;
@@ -735,62 +861,69 @@ function updateTimer() {
 }
 
 function endGame() {
+  if (!isGameInProgress()) return;
+
   stopMetronome();
   clearInterval(timerInterval);
   clearInterval(intermissionInterval);
+  clearInterval(countInterval);
+  isCountdownActive = false;
+  endGameButton.style.display = 'none';
+  changeBackgroundColor(false);
 
-  if (isCountdownActive) {
-    clearInterval(countInterval);
-    isCountdownActive = false;
+  // Quitting before any guess: Quick Play just goes home. A daily whose tempo was
+  // already heard is recorded as 0 (otherwise quitting would be a free peek).
+  if (roundResults.length === 0 && (gameMode === 'quick' || !roundRevealed)) {
+    resetGame({ immediate: true });
+    return;
   }
 
   if (roundResults.length === 0) {
     roundResults.push({
       round: 1,
-      actualBPM: 0,
+      actualBPM: actualBPM || 0,
       guessedBPM: 0,
       score: 0,
       timeTaken: 0,
+      speedBonus: 0,
+      timePenalty: 0,
     });
   }
 
   showFinalResults();
-  endGameButton.style.display = 'none';
-  changeBackgroundColor(false);
 }
 
 function showFinalResults() {
   endGameButton.style.display = 'none';
+  if (gameMode === 'daily') saveDailyResult(totalScore, roundResults);
   document.getElementById('final-score-check').textContent =
     totalScore.toFixed(2);
   checkAndHandleHighScore();
 }
 
+/** Would `score` make a top-N list? Returns the rank it would take, or null. */
+function rankIn(entries, score) {
+  if (!(score > 0)) return null;
+  const rank = entries.filter((e) => e.score >= score).length + 1;
+  return rank <= LEADERBOARD_TOP_N ? rank : null;
+}
+
 async function checkAndHandleHighScore() {
   try {
-    // Check all-time leaderboard
-    const alltimeSnapshot = await getHighScores();
-    qualifiesAllTime = alltimeSnapshot.size < LEADERBOARD_TOP_N;
-    if (!qualifiesAllTime) {
-      const lowest =
-        alltimeSnapshot.docs[alltimeSnapshot.size - 1].data().score;
-      qualifiesAllTime = totalScore > lowest;
-    }
-
-    // Check daily leaderboard (only for daily mode)
-    qualifiesDaily = false;
-    if (gameMode === 'daily') {
-      const dayNum = getDayNumber();
-      const dailySnapshot = await getDailyHighScores(dayNum);
-      qualifiesDaily = dailySnapshot.size < LEADERBOARD_TOP_N;
-      if (!qualifiesDaily) {
-        const lowestDaily =
-          dailySnapshot.docs[dailySnapshot.size - 1].data().score;
-        qualifiesDaily = totalScore > lowestDaily;
-      }
-    }
+    const [alltime, daily] = await Promise.all([
+      getHighScores(),
+      gameMode === 'daily' ? getDailyHighScores(dailyDay) : Promise.resolve(null),
+    ]);
+    pendingRanks = {
+      alltime: rankIn(alltime, totalScore),
+      daily: daily ? rankIn(daily, totalScore) : null,
+    };
+    qualifiesAllTime = pendingRanks.alltime !== null;
+    qualifiesDaily = pendingRanks.daily !== null;
 
     showScreen('high-score-check');
+    setFormError('');
+    document.getElementById('skip-high-score').disabled = false;
 
     if (qualifiesAllTime || qualifiesDaily) {
       let subtitleText;
@@ -806,8 +939,11 @@ async function checkAndHandleHighScore() {
 
       document.getElementById('high-score-input-area').style.display = 'flex';
       document.getElementById('no-high-score-area').style.display = 'none';
-      document.getElementById('player-name-check').value = '';
-      document.getElementById('player-url-check').value = '';
+      const nameInput = document.getElementById('player-name-check');
+      nameInput.value = localStorage.getItem('bpmguesser_last_name') || '';
+      document.getElementById('player-url-check').value =
+        localStorage.getItem('bpmguesser_last_url') || '';
+      nameInput.focus({ preventScroll: true });
     } else {
       document.getElementById('high-score-input-area').style.display = 'none';
       document.getElementById('no-high-score-area').style.display = 'flex';
@@ -818,54 +954,97 @@ async function checkAndHandleHighScore() {
   }
 }
 
+function setFormError(message, focusEl = null) {
+  const el = document.getElementById('score-form-error');
+  if (el) el.textContent = message;
+  if (focusEl) {
+    focusEl.focus();
+    focusEl.classList.add('input-error');
+    setTimeout(() => focusEl.classList.remove('input-error'), 600);
+  }
+}
+
+/** Parse a player-supplied URL (with or without scheme). Returns a URL or null. */
+function parseUserUrl(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const s = raw.trim();
+  try {
+    const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    if (!u.hostname.includes('.')) return null;
+    return u;
+  } catch {
+    return null;
+  }
+}
+
 async function submitHighScoreCheck() {
-  const playerName = document.getElementById('player-name-check').value;
-  let playerUrl = document.getElementById('player-url-check').value.trim();
-
-  if (!playerName) {
-    alert('Please enter your name.');
-    return;
-  }
-
-  if (containsBadWords(playerName)) {
-    alert('Please use appropriate language for your name.');
-    return;
-  }
-
-  if (playerUrl) {
-    playerUrl = prependHttps(playerUrl);
-    if (!isValidUrl(playerUrl)) {
-      alert('Please enter a valid URL or leave the field empty.');
-      return;
-    }
-    if (await isUrlBlacklisted(playerUrl)) {
-      alert('This URL is not allowed.');
-      return;
-    }
-  }
-
+  const nameInput = document.getElementById('player-name-check');
+  const urlInput = document.getElementById('player-url-check');
   const submitButton = document.getElementById('submit-score-check');
+  if (submitButton.style.display === 'none') return; // already submitting
+
+  const playerName = nameInput.value.trim().replace(/\s+/g, ' ');
+  const rawUrl = urlInput.value.trim();
+
+  if (!playerName) return setFormError('Please enter your name.', nameInput);
+  if (playerName.length > NAME_MAX)
+    return setFormError(`Names can be up to ${NAME_MAX} characters.`, nameInput);
+
+  let playerUrl = '';
+  if (rawUrl) {
+    const parsed = parseUserUrl(rawUrl);
+    if (!parsed || parsed.href.length > URL_MAX)
+      return setFormError('Please enter a valid URL or leave it empty.', urlInput);
+    playerUrl = parsed.href;
+  }
+  setFormError('');
+
   const loadingIndicator = document.getElementById('loading-indicator');
   submitButton.style.display = 'none';
   loadingIndicator.style.display = 'block';
 
   try {
-    const submissions = [];
-    if (qualifiesAllTime)
-      submissions.push(addHighScore(playerName, totalScore, playerUrl));
-    if (qualifiesDaily)
-      submissions.push(
-        addDailyHighScore(playerName, totalScore, playerUrl, getDayNumber()),
+    // Track each board separately so a retry after a partial failure never double-posts.
+    const jobs = [];
+    if (qualifiesAllTime && !submittedBoards.alltime)
+      jobs.push(
+        addHighScore(playerName, totalScore, playerUrl).then(() => {
+          submittedBoards.alltime = true;
+        }),
       );
-    await Promise.all(submissions);
+    if (qualifiesDaily && !submittedBoards.daily)
+      jobs.push(
+        addDailyHighScore(playerName, totalScore, playerUrl, dailyDay).then(() => {
+          submittedBoards.daily = true;
+        }),
+      );
+    const results = await Promise.allSettled(jobs);
+    if (results.some((r) => r.status === 'rejected')) {
+      console.error('Error adding high score:', results);
+      setFormError("Couldn't submit your score. Check your connection and try again.");
+      return;
+    }
+    localStorage.setItem('bpmguesser_last_name', playerName);
+    localStorage.setItem('bpmguesser_last_url', rawUrl);
     mySubmittedScore = { name: playerName, score: totalScore };
-  } catch (error) {
-    console.error('Error adding high score:', error);
+    myRank = {
+      alltime: submittedBoards.alltime ? pendingRanks.alltime : null,
+      daily: submittedBoards.daily ? pendingRanks.daily : null,
+    };
+    showFinalScreen();
   } finally {
     submitButton.style.display = 'block';
     loadingIndicator.style.display = 'none';
-    showFinalScreen();
   }
+}
+
+function rankStatusText(rank) {
+  if (!rank) return '';
+  const parts = [];
+  if (rank.daily) parts.push(`#${rank.daily} today`);
+  if (rank.alltime) parts.push(`#${rank.alltime} all time`);
+  return parts.length ? `You placed ${parts.join(' · ')}` : '';
 }
 
 function showFinalScreen() {
@@ -891,7 +1070,7 @@ function showFinalScreen() {
     resetHighScorePanelScroll(endPanel);
   }
 
-  const overallGrade = getGrade(totalScore);
+  const overallGrade = getGameGrade(totalScore);
   document.getElementById('final-score').textContent = totalScore.toFixed(2);
   const gradeBadge = document.getElementById('final-grade-badge');
   if (gradeBadge) {
@@ -904,22 +1083,38 @@ function showFinalScreen() {
     updateDailyStatus();
   }
 
+  if (!gameRecorded) {
+    gameRecorded = true;
+    recordGame({ mode: gameMode, day: dailyDay, score: totalScore, results: roundResults });
+  }
+
   const playAgainBtn = document.getElementById('play-again');
   if (playAgainBtn)
     playAgainBtn.style.display = gameMode === 'daily' ? 'none' : 'flex';
 
   const pb = getPersonalBest();
   const pbStatus = document.getElementById('pb-status');
+  const isNewPB = pb === null || totalScore > pb;
+  if (isNewPB) setPersonalBest(totalScore);
   if (pbStatus) {
-    if (pb === null || totalScore > pb) {
-      setPersonalBest(totalScore);
-      updateHomePB();
+    if (isNewPB) {
       pbStatus.textContent = 'New personal best!';
       pbStatus.className = 'pb-status pb-new';
     } else {
       pbStatus.textContent = `Personal best: ${pb.toFixed(2)}`;
       pbStatus.className = 'pb-status';
     }
+  }
+  const rankStatus = document.getElementById('rank-status');
+  if (rankStatus) {
+    const text = rankStatusText(myRank);
+    rankStatus.textContent = text;
+    rankStatus.hidden = !text;
+  }
+
+  // Celebrate a beaten personal best (not the very first game) or an S-grade game.
+  if ((isNewPB && pb !== null && totalScore > 0) || overallGrade === 'S') {
+    setTimeout(() => celebrate({ originY: 0.45, count: 120 }), 200);
   }
 
   const roundResultsDiv = document.getElementById('round-results');
@@ -947,7 +1142,7 @@ function showFinalScreen() {
                     </div>
                     <div class="result-item">
                         <span class="result-label">Your Guess</span>
-                        <span class="result-value">${result.guessedBPM}</span>
+                        <span class="result-value">${result.guessedBPM || '—'}</span>
                     </div>
                     <div class="result-item">
                         <span class="result-label">Time</span>
@@ -975,32 +1170,49 @@ function setupShareButton() {
   const shareBtn = document.getElementById('share-score');
   if (!shareBtn) return;
 
+  const idleHTML = prefersShareSheet()
+    ? 'Share results <i class="ph-bold ph-export"></i>'
+    : 'Copy results <i class="ph-bold ph-copy"></i>';
+  shareBtn.innerHTML = idleHTML;
+
   shareBtn.onclick = async () => {
-    const gradeEmoji = { S: '🎯', A: '🔥', B: '👍', C: '😅', F: '😬' };
-    const roundLines = roundResults
-      .map((r) => {
-        const diff = Math.abs(r.actualBPM - r.guessedBPM);
-        const grade = getGrade(r.score);
-        return `${gradeEmoji[grade]} Round ${r.round}: ${r.score.toFixed(0)} pts (off by ${diff} BPM)`;
-      })
-      .join('\n');
-
-    const header =
-      gameMode === 'daily'
-        ? `🎵 BPM Guesser Daily #${getDayNumber()}`
-        : `🎵 BPM Guesser`;
-    const text = `${header}\n${roundLines}\nTotal: ${totalScore.toFixed(2)} / ${TOTAL_ROUNDS * 100}\nbpmga.me`;
-
-    try {
-      await navigator.clipboard.writeText(text);
+    const text = buildShareText({
+      mode: gameMode,
+      day: dailyDay,
+      results: roundResults,
+      total: totalScore,
+    });
+    const outcome = await shareText(text);
+    if (outcome === 'copied') {
       shareBtn.innerHTML = 'Copied! <i class="ph-bold ph-check"></i>';
-      setTimeout(() => {
-        shareBtn.innerHTML = 'Copy results <i class="ph-bold ph-copy"></i>';
-      }, 2000);
-    } catch {
+    } else if (outcome === 'failed') {
       shareBtn.textContent = 'Copy failed';
+    } else {
+      return;
     }
+    setTimeout(() => {
+      shareBtn.innerHTML = idleHTML;
+    }, 2000);
   };
+}
+
+async function shareDailyResult(result) {
+  const text = buildShareText({
+    mode: 'daily',
+    day: getDayNumber(),
+    results: result.results || [],
+    total: Number(result.score || 0),
+  });
+  const outcome = await shareText(text);
+  if (outcome !== 'copied') return;
+  const label = document.querySelector('#start-daily .home-daily-label');
+  if (label) {
+    const orig = label.textContent;
+    label.textContent = 'Copied!';
+    setTimeout(() => {
+      label.textContent = orig;
+    }, 1500);
+  }
 }
 
 function toggleEndScores() {
@@ -1037,13 +1249,7 @@ function toggleEndScores() {
 }
 
 // ===== END SCREEN HIGH SCORES TABS =====
-let activeEndScoreTab = 'alltime';
-/** Bumps on each end-screen tab change so slow async list fetches cannot overwrite a newer selection. */
-let _endListRequestId = 0;
-
 function switchEndScoreTab(tab) {
-  const requestId = ++_endListRequestId;
-  activeEndScoreTab = tab;
   const alltimeBtn = document.getElementById('tab-alltime-end');
   const todayBtn = document.getElementById('tab-today-end');
   if (!alltimeBtn || !todayBtn) return;
@@ -1051,11 +1257,7 @@ function switchEndScoreTab(tab) {
   todayBtn.classList.toggle('hs-tab--active', tab === 'today');
   alltimeBtn.setAttribute('aria-selected', String(tab === 'alltime'));
   todayBtn.setAttribute('aria-selected', String(tab === 'today'));
-  if (tab === 'alltime') {
-    void fetchAndDisplayHighScores('high-scores-list-end', requestId);
-  } else {
-    void renderTodaysScore('high-scores-list-end', requestId);
-  }
+  void loadScoreList('high-scores-list-end', tab);
 }
 
 const _highScoreStickyPinByPanel = new WeakMap();
@@ -1148,13 +1350,112 @@ function beginScoresPanelAnimation(panel) {
   });
 }
 
-function toggleHomeScores({ instant = false } = {}) {
+/** View currently shown in the home side panel ('scores' | 'stats' | 'about'), or null when closed. */
+let activePanelView = null;
+let panelViewSwitchTimer = null;
+
+function panelViewEl(view) {
+  return document.querySelector(`#home-scores-panel [data-panel-view="${view}"]`);
+}
+
+function setPanelToggleState(view) {
+  document.querySelectorAll('[data-panel-toggle]').forEach((btn) => {
+    const on = btn.dataset.panelToggle === view;
+    btn.classList.toggle('is-active', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
+/** Show one view, hide the others, and (re)build any dynamic content it needs. */
+function showPanelView(view) {
+  activePanelView = view;
+  document
+    .querySelectorAll('#home-scores-panel [data-panel-view]')
+    .forEach((v) => (v.hidden = v.dataset.panelView !== view));
+  setPanelToggleState(view);
+  if (view === 'stats') {
+    document.getElementById('stats-body').innerHTML = renderStatsHTML();
+  }
+}
+
+/** Header (+ tabs) fade in, then the body/list staggers in — same choreography for every view. */
+function revealPanelView(view, { headerDelay, bodyDelay, scoresAlreadyLoaded }) {
+  const root = panelViewEl(view);
+  if (!root) return;
+  _scoresPanelTimer1 = setTimeout(() => {
+    root.querySelector('.home-scores-header')?.classList.add('is-visible');
+    root.querySelector('.hs-tabs-sticky')?.classList.add('is-visible');
+    if (view !== 'scores') {
+      _scoresPanelTimer2 = setTimeout(() => staggerPanelBody(root), bodyDelay);
+    } else if (scoresAlreadyLoaded) {
+      _scoresPanelTimer2 = setTimeout(() => staggerHomeScoreItems(), bodyDelay);
+    }
+  }, headerDelay);
+}
+
+function staggerPanelBody(root) {
+  const blocks = root.querySelectorAll('.panel-body > *');
+  requestAnimationFrame(() => {
+    blocks.forEach((el, i) => {
+      el.style.transitionDelay = `${i * 80}ms`;
+      el.classList.add('is-visible');
+    });
+  });
+}
+
+/** Icon click: open on that view, close if it's already showing, or swap views in place. */
+function openPanelView(view) {
+  const isOpen = document
+    .getElementById('home-wrapper')
+    .classList.contains('scores-open');
+  if (!isOpen) {
+    toggleHomeScores({ view });
+  } else if (activePanelView === view) {
+    toggleHomeScores();
+  } else {
+    switchPanelView(view);
+  }
+}
+
+/** Swap content without re-running the slide: quick exit, then the new view's stagger. */
+function switchPanelView(view) {
+  const panel = document.getElementById('home-scores-panel');
+  clearTimeout(_scoresPanelTimer1);
+  clearTimeout(_scoresPanelTimer2);
+  clearTimeout(panelViewSwitchTimer);
+  activePanelView = view; // so a second click on this icon during the swap closes the panel
+  setPanelToggleState(view);
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  panel.classList.add('is-closing'); // reuses the panel's exit styles (fade up + blur)
+  panelViewSwitchTimer = setTimeout(
+    () => {
+      panel.classList.remove('is-closing');
+      resetHomeScorePanel();
+      showPanelView(view);
+      panel.scrollTop = 0;
+      if (view === 'scores' && !homeScoresLoaded) {
+        void loadScoreList('home-scores-list', activeScoreTab);
+        homeScoresLoaded = true;
+        revealPanelView(view, { headerDelay: 0, bodyDelay: 0, scoresAlreadyLoaded: false });
+      } else {
+        revealPanelView(view, { headerDelay: 0, bodyDelay: 60, scoresAlreadyLoaded: true });
+      }
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => refreshHighScoreStickyPin(panel)),
+      );
+    },
+    reduced ? 0 : 140,
+  );
+}
+
+function toggleHomeScores({ instant = false, view = 'scores' } = {}) {
   const wrapper = document.getElementById('home-wrapper');
-  const btn = document.getElementById('toggle-scores');
   const panel = document.getElementById('home-scores-panel');
 
   clearTimeout(_scoresPanelTimer1);
   clearTimeout(_scoresPanelTimer2);
+  clearTimeout(panelViewSwitchTimer);
   if (_scoresPanelCloseReset) {
     clearTimeout(_scoresPanelCloseReset);
     _scoresPanelCloseReset = null;
@@ -1167,8 +1468,8 @@ function toggleHomeScores({ instant = false } = {}) {
     if (!instant) beginScoresPanelAnimation(panel);
 
     wrapper.classList.remove('scores-open');
-    btn.classList.remove('is-active');
-    btn.setAttribute('aria-pressed', 'false');
+    activePanelView = null;
+    setPanelToggleState(null);
     panel.setAttribute('aria-hidden', 'true');
 
     let closed = false;
@@ -1195,38 +1496,26 @@ function toggleHomeScores({ instant = false } = {}) {
   } else {
     if (instant) wrapper.classList.add('scores-open--instant');
 
+    panel.classList.remove('is-closing');
+    showPanelView(view);
     wrapper.classList.add('scores-open');
-    btn.classList.add('is-active');
-    btn.setAttribute('aria-pressed', 'true');
     panel.setAttribute('aria-hidden', 'false');
 
     if (!instant) beginScoresPanelAnimation(panel);
 
-    const alreadyLoaded = homeScoresLoaded;
-    if (!homeScoresLoaded) {
-      fetchAndRenderHomeScores(); // calls staggerHomeScoreItems internally after render
+    let scoresAlreadyLoaded = true;
+    if (view === 'scores' && !homeScoresLoaded) {
+      scoresAlreadyLoaded = false;
+      void loadScoreList('home-scores-list', activeScoreTab); // staggers internally after render
       homeScoresLoaded = true;
     }
 
     const isMobileHome = isMobileScoresLayout();
-    const headerRevealMs = instant ? 0 : isMobileHome ? 80 : 260;
-    const staggerDelayMs = instant ? 0 : isMobileHome ? 90 : 160;
-    _scoresPanelTimer1 = setTimeout(() => {
-      const header = document.querySelector(
-        '#home-scores-panel .home-scores-header',
-      );
-      const tabBar = document.querySelector(
-        '#home-scores-panel .hs-tabs-sticky',
-      );
-      if (header) header.classList.add('is-visible');
-      if (tabBar) tabBar.classList.add('is-visible');
-      if (alreadyLoaded) {
-        _scoresPanelTimer2 = setTimeout(
-          () => staggerHomeScoreItems(),
-          staggerDelayMs,
-        );
-      }
-    }, headerRevealMs);
+    revealPanelView(view, {
+      headerDelay: instant ? 0 : isMobileHome ? 80 : 260,
+      bodyDelay: instant ? 0 : isMobileHome ? 90 : 160,
+      scoresAlreadyLoaded,
+    });
 
     if (instant) {
       requestAnimationFrame(() => {
@@ -1271,34 +1560,20 @@ function staggerHomeScoreItems() {
   );
 }
 
+/** Instantly return every panel view to its pre-reveal state (headers, tabs, rows, body blocks). */
 function resetHomeScorePanel() {
-  const header = document.querySelector(
-    '#home-scores-panel .home-scores-header',
-  );
-  const tabBar = document.querySelector('#home-scores-panel .hs-tabs-sticky');
-  const items = document.querySelectorAll(
-    '#home-scores-list .home-score-entry',
+  const els = document.querySelectorAll(
+    '#home-scores-panel .home-scores-header, #home-scores-panel .hs-tabs-sticky, #home-scores-list .home-score-entry, #home-scores-panel .panel-body > *',
   );
   // Disable transitions so reset is instant (no visible flash before panel collapses)
-  if (header) {
-    header.style.transition = 'none';
-    header.classList.remove('is-visible');
-  }
-  if (tabBar) {
-    tabBar.style.transition = 'none';
-    tabBar.classList.remove('is-visible');
-    tabBar.classList.remove('is-pinned');
-  }
-  items.forEach((el) => {
+  els.forEach((el) => {
     el.style.transition = 'none';
     el.style.transitionDelay = '';
-    el.classList.remove('is-visible');
+    el.classList.remove('is-visible', 'is-pinned');
   });
   // Re-enable transitions after the reset has been painted
   requestAnimationFrame(() => {
-    if (header) header.style.transition = '';
-    if (tabBar) tabBar.style.transition = '';
-    items.forEach((el) => {
+    els.forEach((el) => {
       el.style.transition = '';
     });
   });
@@ -1306,194 +1581,114 @@ function resetHomeScorePanel() {
 
 function switchScoreTab(tab) {
   activeScoreTab = tab;
-  document
-    .getElementById('tab-alltime')
-    .classList.toggle('hs-tab--active', tab === 'alltime');
-  document
-    .getElementById('tab-today')
-    .classList.toggle('hs-tab--active', tab === 'today');
-  document
-    .getElementById('tab-alltime')
-    .setAttribute('aria-selected', String(tab === 'alltime'));
-  document
-    .getElementById('tab-today')
-    .setAttribute('aria-selected', String(tab === 'today'));
-
-  if (tab === 'alltime') {
-    fetchAndRenderHomeScores();
-  } else {
-    renderTodaysScore();
-  }
+  const alltimeBtn = document.getElementById('tab-alltime');
+  const todayBtn = document.getElementById('tab-today');
+  alltimeBtn.classList.toggle('hs-tab--active', tab === 'alltime');
+  todayBtn.classList.toggle('hs-tab--active', tab === 'today');
+  alltimeBtn.setAttribute('aria-selected', String(tab === 'alltime'));
+  todayBtn.setAttribute('aria-selected', String(tab === 'today'));
+  void loadScoreList('home-scores-list', tab);
 }
 
-async function fetchAndRenderHomeScores() {
-  const list = document.getElementById('home-scores-list');
-  if (!list) return;
-  list.innerHTML = '<li class="home-score-loading">Loading…</li>';
+// ===== LEADERBOARD LISTS (shared by home + end panels) =====
+/** Per-list request counter so a slow fetch can't overwrite a newer tab selection. */
+const listRequestIds = new Map();
 
-  try {
-    const querySnapshot = await getHighScores();
-    list.innerHTML = '';
-
-    if (querySnapshot.empty) {
-      list.innerHTML =
-        '<li class="home-score-empty">No scores yet — be the first!</li>';
-      return;
-    }
-
-    querySnapshot.docs.forEach((doc, i) => {
-      const data = doc.data();
-      const li = document.createElement('li');
-      li.className = 'home-score-entry';
-
-      let urlHTML = '';
-      if (data.url && data.url.trim()) {
-        const urlStr = prependHttps(data.url.trim());
-        if (isValidUrl(urlStr)) {
-          const hostname = new URL(urlStr).hostname;
-          urlHTML = `<a class="home-score-url" href="${urlStr}" target="_blank" rel="noopener">${hostname}</a>`;
-        }
-      }
-
-      li.innerHTML = `
-                <div class="home-score-left">
-                    <span class="home-score-rank">${i + 1}.</span>
-                    <div class="home-score-name-obj">
-                        <span class="home-score-name">${data.name}</span>
-                        ${urlHTML}
-                    </div>
-                </div>
-                <span class="home-score-value">${data.score.toFixed(2)}</span>
-            `;
-      list.appendChild(li);
-    });
-    staggerHomeScoreItems();
-  } catch (e) {
-    console.error('Error fetching home scores:', e);
-    list.innerHTML = '<li class="home-score-empty">Could not load scores.</li>';
-  }
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
 }
 
-async function renderTodaysScore(
-  elementId = 'home-scores-list',
-  listRequestId = null,
-) {
-  const list = document.getElementById(elementId);
+function setListMessage(list, text, className) {
+  list.replaceChildren(el('li', className, text));
+}
+
+/** Builds rows with DOM APIs only — names/URLs come from other players and are never parsed as HTML. */
+function renderScoreList(list, entries) {
+  if (!entries.length) {
+    setListMessage(list, 'No scores yet — be the first!', 'home-score-empty');
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  entries.forEach((entry, i) => {
+    const isMe =
+      !!mySubmittedScore &&
+      entry.name === mySubmittedScore.name &&
+      entry.score.toFixed(2) === mySubmittedScore.score.toFixed(2);
+
+    const li = el('li', `home-score-entry${isMe ? ' is-mine' : ''}`);
+    const left = el('div', 'home-score-left');
+    left.append(el('span', 'home-score-rank', `${i + 1}.`));
+
+    const nameObj = el('div', 'home-score-name-obj');
+    nameObj.append(el('span', 'home-score-name', entry.name));
+    const url = parseUserUrl(entry.url);
+    if (url) {
+      const a = el('a', 'home-score-url', url.hostname);
+      a.href = url.href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer nofollow ugc';
+      nameObj.append(a);
+    }
+    left.append(nameObj);
+    if (isMe) left.append(el('span', 'home-score-you', 'You'));
+
+    li.append(left, el('span', 'home-score-value', entry.score.toFixed(2)));
+    frag.append(li);
+  });
+  list.replaceChildren(frag);
+}
+
+async function loadScoreList(listId, tab) {
+  const list = document.getElementById(listId);
   if (!list) return;
-  list.innerHTML = '<li class="home-score-loading">Loading…</li>';
+  const requestId = (listRequestIds.get(listId) || 0) + 1;
+  listRequestIds.set(listId, requestId);
+  setListMessage(list, 'Loading…', 'home-score-loading');
 
   try {
-    const snapshot = await getDailyHighScores(getDayNumber());
-    if (listRequestId != null && listRequestId !== _endListRequestId) {
-      return;
-    }
-    list.innerHTML = '';
-
-    if (snapshot.empty) {
-      list.innerHTML =
-        '<li class="home-score-empty">No scores yet — be the first!</li>';
-      if (elementId === 'home-scores-list') staggerHomeScoreItems();
-      return; // empty state has no entries to stagger
-    }
-
-    snapshot.docs.forEach((doc, i) => {
-      const data = doc.data();
-      const isMe = mySubmittedScore &&
-        data.name === mySubmittedScore.name &&
-        data.score.toFixed(2) === mySubmittedScore.score.toFixed(2);
-      const li = document.createElement('li');
-      li.className = 'home-score-entry' + (isMe ? ' is-mine' : '');
-      let urlHTML = '';
-      if (data.url && data.url.trim()) {
-        const urlStr = prependHttps(data.url.trim());
-        if (isValidUrl(urlStr)) {
-          const hostname = new URL(urlStr).hostname;
-          urlHTML = `<a class="home-score-url" href="${urlStr}" target="_blank" rel="noopener">${hostname}</a>`;
-        }
-      }
-      const youPill = isMe ? '<span class="home-score-you">You</span>' : '';
-      li.innerHTML = `
-                <div class="home-score-left">
-                    <span class="home-score-rank">${i + 1}.</span>
-                    <div class="home-score-name-obj">
-                        <span class="home-score-name">${data.name}</span>
-                        ${urlHTML}
-                    </div>
-                    ${youPill}
-                </div>
-                <span class="home-score-value">${data.score.toFixed(2)}</span>
-            `;
-      list.appendChild(li);
-    });
-
-    if (elementId === 'home-scores-list') {
-      staggerHomeScoreItems();
-    } else {
-      staggerScoreItems(elementId);
-    }
-    scrollMineIntoView(elementId);
+    const entries =
+      tab === 'today'
+        ? await getDailyHighScores(dailyDay ?? getDayNumber())
+        : await getHighScores();
+    if (listRequestIds.get(listId) !== requestId) return;
+    renderScoreList(list, entries);
+    if (listId === 'home-scores-list') staggerHomeScoreItems();
+    else staggerScoreItems(listId);
+    scrollMineIntoView(listId);
   } catch (error) {
-    if (listRequestId != null && listRequestId !== _endListRequestId) {
-      return;
-    }
-    list.innerHTML = '<li class="home-score-empty">Could not load scores.</li>';
-    console.error('Error fetching daily scores:', error);
+    if (listRequestIds.get(listId) !== requestId) return;
+    setListMessage(list, 'Could not load scores.', 'home-score-empty');
+    console.error(`Error fetching ${tab} scores:`, error);
   }
 }
 
-async function copyDailyResult(result) {
-  const gradeEmoji = { S: '🎯', A: '🔥', B: '👍', C: '😅', F: '😬' };
-  const roundLines = (result.results || [])
-    .map((r, i) => {
-      const diff = Math.abs(r.actualBPM - r.guessedBPM);
-      const grade = getGrade(r.score);
-      return `${gradeEmoji[grade]} Round ${i + 1}: ${r.score.toFixed(0)} pts (off by ${diff} BPM)`;
-    })
-    .join('\n');
-  const text = `🎵 BPM Guesser Daily #${getDayNumber()}\n${roundLines}\nTotal: ${result.score.toFixed(2)} / ${TOTAL_ROUNDS * 100}\nbpmga.me`;
-  try {
-    await navigator.clipboard.writeText(text);
-    const btn = document.getElementById('start-daily');
-    const label = btn && btn.querySelector('.home-daily-label');
-    if (label) {
-      const orig = label.textContent;
-      label.textContent = 'Copied!';
-      setTimeout(() => {
-        label.textContent = orig;
-      }, 1500);
-    }
-  } catch (e) {
-    console.error('Copy failed', e);
-  }
+function triggerAnim(node, cls) {
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
 }
 
-function triggerAnim(el, cls) {
-  el.classList.remove(cls);
-  void el.offsetWidth;
-  el.classList.add(cls);
-}
-
-function animateCount(el, target, duration = 600) {
+function animateCount(node, target, duration = 600) {
   const start = performance.now();
   function tick(now) {
     const progress = Math.min((now - start) / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = (target * eased).toFixed(2);
+    node.textContent = (target * eased).toFixed(2);
     if (progress < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
 
-function resetGame() {
-  currentRound = 1;
-  totalScore = 0;
-  roundResults = [];
+function resetGame({ immediate = false } = {}) {
+  resetRunState();
   isCountdownActive = false;
   gameMode = 'quick';
   dailyBPMs = [];
-  qualifiesAllTime = false;
-  qualifiesDaily = false;
-  mySubmittedScore = null;
+  dailyDate = null;
+  dailyDay = null;
 
   // Reset scores panel so it re-fetches fresh data next open
   homeScoresLoaded = false;
@@ -1524,88 +1719,21 @@ function resetGame() {
   submitGuessButton.disabled = false;
   changeBackgroundColor(false);
   clearInterval(timerInterval);
+  clearInterval(intermissionInterval);
   stopMetronome();
   clearInterval(countInterval);
 
-  endScreen.style.opacity = 0;
-  setTimeout(() => {
+  const goHome = () => {
     gameArea.style.display = 'none';
     showScreen('home-screen');
-  }, 500);
-}
+    updateDailyStatus();
+    if (!isMobileScoresLayout()) toggleHomeScores({ instant: true });
+  };
 
-function isValidUrl(string) {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
+  if (immediate) {
+    goHome();
+    return;
   }
-}
-
-function prependHttps(url) {
-  if (!/^https?:\/\//i.test(url)) {
-    return 'https://' + url;
-  }
-  return url;
-}
-
-async function fetchAndDisplayHighScores(elementId, listRequestId = null) {
-  const list = document.getElementById(elementId);
-  if (!list) return;
-  list.innerHTML = '<li class="home-score-loading">Loading…</li>';
-  try {
-    const querySnapshot = await getHighScores();
-    if (listRequestId != null && listRequestId !== _endListRequestId) {
-      return;
-    }
-    list.innerHTML = '';
-    if (querySnapshot.empty) {
-      list.innerHTML =
-        '<li class="home-score-empty">No scores yet — be the first!</li>';
-      return;
-    }
-    querySnapshot.docs.forEach((doc, i) => {
-      const data = doc.data();
-      const isMe = mySubmittedScore &&
-        data.name === mySubmittedScore.name &&
-        data.score.toFixed(2) === mySubmittedScore.score.toFixed(2);
-      const li = document.createElement('li');
-      li.className = 'home-score-entry' + (isMe ? ' is-mine' : '');
-      let urlHTML = '';
-      if (data.url && data.url.trim()) {
-        const urlStr = prependHttps(data.url.trim());
-        if (isValidUrl(urlStr)) {
-          const hostname = new URL(urlStr).hostname;
-          urlHTML = `<a class="home-score-url" href="${urlStr}" target="_blank" rel="noopener">${hostname}</a>`;
-        }
-      }
-      const youPill = isMe ? '<span class="home-score-you">You</span>' : '';
-      li.innerHTML = `
-                <div class="home-score-left">
-                    <span class="home-score-rank">${i + 1}.</span>
-                    <div class="home-score-name-obj">
-                        <span class="home-score-name">${data.name}</span>
-                        ${urlHTML}
-                    </div>
-                    ${youPill}
-                </div>
-                <span class="home-score-value">${data.score.toFixed(2)}</span>
-            `;
-      list.appendChild(li);
-    });
-    staggerScoreItems(elementId);
-    scrollMineIntoView(elementId);
-  } catch (error) {
-    if (listRequestId != null && listRequestId !== _endListRequestId) {
-      return;
-    }
-    list.innerHTML = '<li class="home-score-empty">Could not load scores.</li>';
-    console.error('Error fetching high scores:', error);
-  }
-}
-
-// No client-side URL blacklist — enforce via Firestore security rules or a server-side function.
-async function isUrlBlacklisted(_url) {
-  return false;
+  endScreen.style.opacity = 0;
+  setTimeout(goHome, 500);
 }

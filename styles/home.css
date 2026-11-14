@@ -107,6 +107,7 @@
 }
 
 .home-icon-btn {
+  position: relative;
   width: 32px;
   height: 32px;
   display: flex;
@@ -124,21 +125,49 @@
     transform 0.1s ease;
 }
 
+/* Extend the 32px button to a 40px hit target; the 8px row gap keeps neighbours from overlapping */
+.home-icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
 .home-icon-btn:hover {
   background-color: var(--hover-bg);
 }
 
 .home-icon-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.96);
 }
 
-/* Scores toggle active state */
-.home-scores-btn.is-active {
+/* Theme toggle: both icons stay in the DOM and cross-fade (scale .25→1, blur 4→0) */
+.theme-icon {
+  position: absolute;
+  transition:
+    opacity 0.2s cubic-bezier(0.2, 0, 0, 1),
+    scale 0.2s cubic-bezier(0.2, 0, 0, 1),
+    filter 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.theme-icon.is-hidden {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon {
+    transition: none;
+  }
+}
+
+/* Panel toggles: active state for whichever view is open */
+.home-icon-btn.is-active {
   background-color: var(--tab-active-bg);
   color: var(--tab-active-fg);
 }
 
-.home-scores-btn.is-active:hover {
+.home-icon-btn.is-active:hover {
   background-color: var(--tab-active-hover);
 }
 
@@ -282,6 +311,7 @@
   letter-spacing: -0.72px;
   line-height: 32px;
   margin: 0;
+  text-wrap: balance;
 }
 
 /* Tabs */
@@ -705,6 +735,7 @@
 
 .daily-eyebrow-thanks {
   color: var(--text-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Daily button wrapper — needed for tooltip positioning */
@@ -956,4 +987,22 @@
   color: var(--text-2);
   letter-spacing: -0.42px;
   font-weight: 400;
+}
+
+/* Daily streak chip (eyebrow line) */
+.daily-eyebrow-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  color: #f59e0b;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-eyebrow-streak[hidden] {
+  display: none;
+}
+
+.daily-eyebrow-line .daily-eyebrow-streak i {
+  font-size: 14px;
 }

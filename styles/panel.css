@@ -1,0 +1,722 @@
+/* Card depth: layered translucent shadows instead of a solid border, so the edge
+   adapts to whatever surface sits behind it. */
+:root {
+  --card-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme='dark'] {
+  --card-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== SIDE PANEL VIEWS =====
+   The home off-canvas panel (#home-scores-panel) hosts three views — scores, stats,
+   about. Layout/slide animation lives in home.css; this file covers the views. */
+
+.home-scores-inner[hidden] {
+  display: none;
+}
+
+.panel-body {
+  margin-top: 12px;
+}
+
+/* Keep prose and tiles at a readable measure even when the panel is wide */
+.panel-body > * {
+  max-width: 600px;
+}
+
+/* Desktop: body is the scroll container, flush to the panel edge (same trick as the list) */
+@media (min-width: 801px) {
+  .panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 64px;
+    margin-left: -32px;
+    margin-right: -32px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+/* Staggered enter, matching the score rows; JS adds .is-visible with per-child delays */
+#home-scores-panel .panel-body > * {
+  opacity: 0;
+  transform: translateY(6px);
+  filter: blur(2px);
+  transition:
+    opacity 0.2s var(--motion-standard),
+    transform 0.2s var(--motion-standard),
+    filter 0.2s var(--motion-standard);
+}
+
+#home-scores-panel .panel-body > .is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.home-scores-panel.is-closing .panel-body > * {
+  opacity: 0;
+  transform: translateY(-6px);
+  filter: blur(2px);
+  transition-duration: var(--motion-panel-exit);
+  transition-delay: 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #home-scores-panel .panel-body > * {
+    transition: none !important;
+  }
+}
+
+/* Prose (about) */
+.panel-body h4 {
+  margin: 24px 0 12px;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.panel-body p {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.panel-body p strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.panel-body a {
+  color: var(--link);
+}
+
+.panel-body a:hover {
+  text-decoration: underline;
+}
+
+.panel-body p.panel-credit {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* ── Stats panel ─────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 24px;
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.stats-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.stats-tile__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.36px;
+  color: var(--text-2);
+}
+
+.stats-tile__value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-tile__value small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.stats-tile__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stats-tile__sub {
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-fire {
+  align-self: center;
+  font-size: 16px;
+  color: #f59e0b;
+}
+
+.grade-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grade-bars__row {
+  display: grid;
+  grid-template-columns: 16px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.grade-bars__label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.grade-bars__track {
+  height: 10px;
+}
+
+.grade-bars__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+  background: var(--text);
+}
+
+.grade-bars__value {
+  text-align: right;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.recent-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 96px;
+  padding-top: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.recent-chart__col {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 24px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--text-3);
+  transition: background-color 0.15s ease;
+}
+
+.recent-chart__col:hover,
+.recent-chart__col.is-best {
+  background: var(--text);
+}
+
+.recent-chart__tag {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.panel-body p.stats-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.panel-body p.stats-empty {
+  margin: 0;
+}
+
+/* ── How to Play ─────────────────────────────────────────────────────────── */
+.panel-body.how > section {
+  margin-bottom: 40px;
+}
+
+.panel-body.how > .how-lede {
+  margin-bottom: 32px;
+}
+
+.panel-body.how p.panel-credit {
+  margin-top: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.panel-body.how p.how-lede {
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 48px;
+  letter-spacing: -0.72px;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.how-lede__accent {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* Eyebrow: asterisk marker (same glyph as the high score tabs), then label */
+.how-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.36px;
+  color: var(--text-2);
+}
+
+.how-eyebrow__marker {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.panel-body.how h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  letter-spacing: -0.3px;
+}
+
+.panel-body.how p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.panel-body.how em {
+  font-style: normal;
+  color: var(--text);
+}
+
+/* Steps: hairline-ruled rows — number · glyph · text */
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.how-step {
+  display: grid;
+  grid-template-columns: 24px 72px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.how-step:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.how-step__num {
+  align-self: start;
+  padding-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.how-step__glyph {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+/* 01 — a real pulse at 100 BPM */
+.how-pulse {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  animation: how-pulse 0.6s ease-out infinite;
+}
+
+@keyframes how-pulse {
+  0% {
+    transform: scale(1.18);
+    background-color: var(--text);
+  }
+  35%,
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+/* 02 — a mini guess field */
+.how-guess {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.how-guess small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+/* 03 — fanned grade badges */
+.how-step__glyph--grades .round-grade-badge {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.how-step__glyph--grades .round-grade-badge + .round-grade-badge {
+  margin-left: -4px;
+}
+
+.how-step__glyph--grades .round-grade-badge:nth-child(1) {
+  transform: rotate(-8deg);
+}
+.how-step__glyph--grades .round-grade-badge:nth-child(2) {
+  transform: translateY(-2px);
+  z-index: 1;
+}
+.how-step__glyph--grades .round-grade-badge:nth-child(3) {
+  transform: rotate(8deg);
+}
+
+/* Keycaps */
+.how-key {
+  display: inline-flex;
+  align-items: center;
+  min-width: 20px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  vertical-align: 1px;
+}
+
+/* Cards */
+.how-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 8px;
+}
+
+.how-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+
+.panel-body.how .how-card h4 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  margin: 8px 0 2px;
+}
+
+.how-card__value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.how-card__icon {
+  font-size: 20px;
+  color: var(--text);
+}
+
+.how-card__icon--daily {
+  color: #f59e0b;
+}
+
+/* Scoring: one card, sectioned by hairlines — accuracy / speed / penalty */
+.how-cards--stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.how-cards--stack .how-card {
+  gap: 0;
+  padding: 24px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.how-cards--stack .how-card + .how-card {
+  border-top: 1px solid var(--border);
+}
+
+.panel-body.how .how-cards--stack .how-card h4 {
+  justify-content: space-between;
+  margin: 0;
+  font-size: 16px;
+}
+
+.how-cards--stack .how-card__value {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.how-cards--stack .how-ticks {
+  margin: 28px 4px 24px;
+}
+
+.panel-body.how .how-cards--stack .how-card p {
+  max-width: 44ch;
+  color: var(--text-2);
+}
+
+/* Beat ticks: each card is a strip of metronome ticks laid out on its own axis.
+   --w (0–1) = share of points still earned at that tick; it drives size + opacity. */
+.how-ticks {
+  --tick-color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--tick-color);
+}
+
+.how-card--speed .how-ticks {
+  --tick-color: #f59e0b;
+}
+
+.how-card--penalty .how-ticks {
+  --tick-color: var(--text-2);
+}
+
+.how-ticks__row {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.how-tick {
+  --size: calc(5px + 9px * var(--w));
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 0.25s var(--motion-standard),
+    transform 0.25s var(--motion-standard);
+  transition-delay: calc(150ms + var(--i) * 45ms);
+}
+
+/* The exact guess: largest mark, ringed */
+.how-tick--target {
+  --size: 14px;
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3px currentColor;
+}
+
+/* Earns nothing here */
+.how-tick--hollow {
+  --size: 8px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+/* Penalty: each second past 2s takes points back */
+.how-tick--minus {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.how-section.is-visible .how-tick {
+  opacity: calc(0.3 + 0.7 * var(--w));
+  transform: scale(1);
+}
+
+.how-section.is-visible .how-tick--hollow,
+.how-section.is-visible .how-tick--minus {
+  opacity: 0.7;
+}
+
+.how-ticks__labels {
+  position: relative;
+  height: 16px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.how-ticks__labels span {
+  position: absolute;
+  left: var(--at);
+  transform: translateX(calc(var(--at) * -1));
+  white-space: nowrap;
+}
+
+.panel-body.how p.how-footnote {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shared roomy card (grades, share) — same rhythm as the stacked scoring cards */
+.how-card--pad {
+  gap: 0;
+  padding: 24px;
+}
+
+.panel-body.how .how-card--pad h4.how-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0;
+  font-size: 16px;
+}
+
+.panel-body.how .how-card--pad p {
+  max-width: 44ch;
+  color: var(--text-2);
+}
+
+/* Grade scale: one 0–133 bar, bands sized to their real point ranges */
+.how-scale {
+  margin: 28px 0 24px;
+}
+
+.how-scale__bar {
+  display: flex;
+  gap: 2px;
+  height: 32px;
+}
+
+.how-scale__seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.how-scale__seg:first-child {
+  border-radius: 8px 4px 4px 8px;
+}
+
+.how-scale__seg:last-child {
+  border-radius: 4px 8px 8px 4px;
+}
+
+.how-scale__labels {
+  position: relative;
+  height: 16px;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.how-scale__labels span {
+  position: absolute;
+  left: var(--at);
+  transform: translateX(-50%);
+}
+
+.how-scale__labels span.is-start {
+  transform: none;
+}
+
+.how-scale__labels span.is-end {
+  transform: translateX(-100%);
+}
+
+@media (max-width: 420px) {
+  .how-step {
+    grid-template-columns: 20px 56px 1fr;
+    gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-pulse {
+    animation: none;
+  }
+  .how-tick {
+    transition: none;
+  }
+}

@@ -30,3 +30,5 @@ build/
 
 # Ignore OS generated files
 Thumbs.db
+# Firebase CLI cache
+.firebase/

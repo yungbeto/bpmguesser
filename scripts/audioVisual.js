@@ -1,11 +1,19 @@
 // audioVisual.js
 let audioContext;
 
-export function initAudio() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
+/**
+ * Create (once) and resume the AudioContext. Must be called synchronously inside a
+ * user gesture (click/tap/keypress) — browsers keep contexts created or left
+ * suspended outside a gesture silent. Also recovers iOS's 'interrupted' state.
+ */
+export function ensureAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
+    if (audioContext.state !== 'running') {
+        audioContext.resume().catch(() => {});
+    }
+    return audioContext;
 }
 
 export function getAudioContext() {

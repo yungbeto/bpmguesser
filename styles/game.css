@@ -23,7 +23,7 @@
 }
 
 #end-game:active {
-  transform: scale(0.9);
+  transform: scale(0.96);
 }
 
 /* Media Queries */
@@ -662,4 +662,90 @@ body.dark-mode #skip-high-score {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ── Tempo replay (intermission): actual vs. guessed tempo, pulsing side by side ── */
+.tempo-compare {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 20px;
+  animation: intermission-fade-up 0.35s cubic-bezier(0.2, 0, 0, 1) 0.3s both;
+}
+
+.tempo-compare__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tempo-dot {
+  --pulse-fill: var(--text-color);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(var(--text-rgb), 0.45);
+  animation: tempo-pulse var(--beat, 0.5s) ease-out infinite;
+}
+
+.tempo-dot--guess {
+  --pulse-fill: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+@keyframes tempo-pulse {
+  0% {
+    transform: scale(1.15);
+    background-color: var(--pulse-fill);
+  }
+  35%,
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+.tempo-compare__label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(var(--text-rgb), 0.5);
+}
+
+.tempo-compare__bpm {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-color);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tempo-compare {
+    animation: none;
+  }
+  .tempo-dot {
+    animation: none;
+  }
+}
+
+/* High score form inline error (replaces alert()) */
+.score-form-error {
+  min-height: 20px;
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #e53e3e;
+  text-wrap: pretty;
+}
+
+/* Confetti overlay */
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
 }

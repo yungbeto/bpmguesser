@@ -8,7 +8,7 @@
     <!-- Fonts and CSS links -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 
     <!-- Favicon -->
@@ -32,9 +32,6 @@
     <meta name="twitter:title" content="BPM Guesser" />
     <meta name="twitter:description" content="Listen to the metronome and guess the BPM." />
     <meta name="twitter:image" content="https://bpmga.me/img/card.png" />
-
-    <!-- Howler.js for audio handling -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 
     <!-- Phosphor Icons (regular, bold, fill) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
@@ -61,14 +58,19 @@
                     </div>
                     <div class="home-icon-row">
                         <button class="home-icon-btn" id="toggle-theme" aria-label="Toggle dark mode">
-                            <i class="ph ph-sun" id="theme-icon-light"></i>
-                            <i class="ph ph-moon" id="theme-icon-dark" style="display:none;"></i>
+                            <i class="ph ph-sun theme-icon" id="theme-icon-light" aria-hidden="true"></i>
+                            <i class="ph ph-moon theme-icon is-hidden" id="theme-icon-dark" aria-hidden="true"></i>
                         </button>
-                        <button class="home-icon-btn" id="open-about" aria-label="About">
+                        <button class="home-icon-btn" id="open-stats" data-panel-toggle="stats" aria-label="Your stats"
+                            aria-pressed="false" aria-controls="home-scores-panel">
+                            <i class="ph ph-chart-bar"></i>
+                        </button>
+                        <button class="home-icon-btn" id="open-about" data-panel-toggle="about" aria-label="How to play"
+                            aria-pressed="false" aria-controls="home-scores-panel">
                             <i class="ph ph-question"></i>
                         </button>
-                        <button class="home-icon-btn home-scores-btn" id="toggle-scores" aria-label="High scores"
-                            aria-pressed="false">
+                        <button class="home-icon-btn" id="toggle-scores" data-panel-toggle="scores"
+                            aria-label="High scores" aria-pressed="false" aria-controls="home-scores-panel">
                             <i class="ph ph-list-numbers"></i>
                         </button>
                     </div>
@@ -81,6 +83,10 @@
                         <span class="daily-eyebrow-text">Day <span id="day-number" class="day-number"></span></span>
                         <span class="daily-eyebrow-sep" id="daily-eyebrow-sep"></span>
                         <span class="daily-eyebrow-thanks" id="daily-eyebrow-thanks"></span>
+                        <span class="daily-eyebrow-streak" id="daily-eyebrow-streak" hidden>
+                            <i class="ph-fill ph-fire" aria-hidden="true"></i><span
+                                class="daily-eyebrow-streak__count"></span>
+                        </span>
                     </div>
                     <div class="daily-btn-wrapper">
                         <button id="start-daily" class="home-daily-btn">
@@ -110,13 +116,13 @@
 
             </div><!-- /home-layout -->
 
-            <!-- High Scores Panel -->
+            <!-- Side panel: one off-canvas surface hosting three views (scores / stats / about) -->
             <div class="home-scores-panel" id="home-scores-panel" aria-hidden="true">
                 <button class="home-scores-back" id="close-scores" aria-label="Go back">
                     <i class="ph ph-arrow-left"></i>
                     Back
                 </button>
-                <div class="home-scores-inner">
+                <div class="home-scores-inner" data-panel-view="scores">
                     <div class="home-scores-header">
                         <h2 class="home-scores-title">High Scores</h2>
                     </div>
@@ -133,6 +139,175 @@
                         </div>
                     </div>
                     <ul class="home-scores-list" id="home-scores-list"></ul>
+                </div>
+
+                <div class="home-scores-inner" data-panel-view="stats" hidden>
+                    <div class="home-scores-header">
+                        <h2 class="home-scores-title">Your Stats</h2>
+                    </div>
+                    <div class="panel-body" id="stats-body"></div>
+                </div>
+
+                <div class="home-scores-inner" data-panel-view="about" hidden>
+                    <div class="home-scores-header">
+                        <h2 class="home-scores-title">How to Play</h2>
+                    </div>
+                    <div class="panel-body how">
+                        <p class="how-lede">Hear the beat <br /><span class="how-lede__accent">Guess the tempo</span>
+                        </p>
+
+                        <section class="how-section" aria-labelledby="how-round">
+                            <h3 class="how-eyebrow" id="how-round"><i class="ph ph-asterisk how-eyebrow__marker"
+                                    aria-hidden="true"></i>A round, in three beats</h3>
+                            <ol class="how-steps">
+                                <li class="how-step">
+                                    <span class="how-step__num">01</span>
+                                    <span class="how-step__glyph" aria-hidden="true"><span
+                                            class="how-pulse"></span></span>
+                                    <div class="how-step__text">
+                                        <h4>Listen</h4>
+                                        <p>A metronome starts ticking. The range hint shows where the tempo lives, and
+                                            it <em>narrows</em> every round.</p>
+                                    </div>
+                                </li>
+                                <li class="how-step">
+                                    <span class="how-step__num">02</span>
+                                    <span class="how-step__glyph" aria-hidden="true"><span
+                                            class="how-guess">120<small>bpm</small></span></span>
+                                    <div class="how-step__text">
+                                        <h4>Guess</h4>
+                                        <p>Type your BPM and hit <kbd class="how-key">Enter</kbd>. The clock is running
+                                            from the first tick.</p>
+                                    </div>
+                                </li>
+                                <li class="how-step">
+                                    <span class="how-step__num">03</span>
+                                    <span class="how-step__glyph how-step__glyph--grades" aria-hidden="true">
+                                        <span class="round-grade-badge grade-S">S</span><span
+                                            class="round-grade-badge grade-A">A</span><span
+                                            class="round-grade-badge grade-B">B</span>
+                                    </span>
+                                    <div class="how-step__text">
+                                        <h4>Score</h4>
+                                        <p>See how close you were, then go again. Three rounds make a game.</p>
+                                    </div>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <section class="how-section" aria-labelledby="how-points">
+                            <h3 class="how-eyebrow" id="how-points"><i class="ph ph-asterisk how-eyebrow__marker"
+                                    aria-hidden="true"></i>What earns points</h3>
+                            <div class="how-cards how-cards--stack">
+                                <div class="how-card">
+                                    <h4>Accuracy <span class="how-card__value">100 pts</span></h4>
+                                    <div class="how-ticks how-ticks--accuracy" aria-hidden="true">
+                                        <div class="how-ticks__row"><span class="how-tick how-tick--hollow"
+                                                style="--i:0;--w:0.00"></span><span class="how-tick"
+                                                style="--i:1;--w:0.25"></span><span class="how-tick"
+                                                style="--i:2;--w:0.50"></span><span class="how-tick"
+                                                style="--i:3;--w:0.75"></span><span class="how-tick how-tick--target"
+                                                style="--i:4;--w:1.00"></span><span class="how-tick"
+                                                style="--i:5;--w:0.75"></span><span class="how-tick"
+                                                style="--i:6;--w:0.50"></span><span class="how-tick"
+                                                style="--i:7;--w:0.25"></span><span class="how-tick how-tick--hollow"
+                                                style="--i:8;--w:0.00"></span></div>
+                                        <div class="how-ticks__labels"><span style="--at:0%">−20</span><span
+                                                style="--at:50%">exact</span><span style="--at:100%">+20</span></div>
+                                    </div>
+                                    <p>Every BPM you're off costs 5 points. <strong>More than 20 off</strong> and the
+                                        round scores zero.</p>
+                                </div>
+                                <div class="how-card how-card--speed">
+                                    <h4>Speed bonus <span class="how-card__value">+33 pts</span></h4>
+                                    <div class="how-ticks how-ticks--speed" aria-hidden="true">
+                                        <div class="how-ticks__row"><span class="how-tick"
+                                                style="--i:0;--w:1.00"></span><span class="how-tick"
+                                                style="--i:1;--w:0.90"></span><span class="how-tick"
+                                                style="--i:2;--w:0.80"></span><span class="how-tick"
+                                                style="--i:3;--w:0.70"></span><span class="how-tick"
+                                                style="--i:4;--w:0.60"></span><span class="how-tick"
+                                                style="--i:5;--w:0.50"></span><span class="how-tick"
+                                                style="--i:6;--w:0.40"></span><span class="how-tick"
+                                                style="--i:7;--w:0.30"></span><span class="how-tick"
+                                                style="--i:8;--w:0.20"></span><span class="how-tick"
+                                                style="--i:9;--w:0.10"></span><span class="how-tick how-tick--hollow"
+                                                style="--i:10;--w:0.00"></span></div>
+                                        <div class="how-ticks__labels"><span style="--at:0%">0s</span><span
+                                                style="--at:100%">10s</span></div>
+                                    </div>
+                                    <p>Commit fast. The bonus fades to nothing by <strong>10 seconds</strong>.</p>
+                                </div>
+                                <div class="how-card how-card--penalty">
+                                    <h4>Time penalty <span class="how-card__value">−0.5 / sec</span></h4>
+                                    <div class="how-ticks how-ticks--penalty" aria-hidden="true">
+                                        <div class="how-ticks__row"><span class="how-tick how-tick--hollow"
+                                                style="--i:0;--w:1.00"></span><span class="how-tick how-tick--hollow"
+                                                style="--i:1;--w:1.00"></span><span class="how-tick how-tick--hollow"
+                                                style="--i:2;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:3;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:4;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:5;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:6;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:7;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:8;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:9;--w:1.00"></span><span class="how-tick how-tick--minus"
+                                                style="--i:10;--w:1.00"></span></div>
+                                        <div class="how-ticks__labels"><span style="--at:0%">0s</span><span
+                                                style="--at:20%">2s</span><span style="--at:100%">10s</span></div>
+                                    </div>
+                                    <p>After <strong>2 seconds</strong> the clock starts taking points back.</p>
+                                </div>
+                            </div>
+                            <p class="how-footnote">Max 133 per round · 399 per game</p>
+                        </section>
+
+                        <section class="how-section" aria-labelledby="how-grades">
+
+                            <h3 class="how-eyebrow" id="how-grades"><i class="ph ph-asterisk how-eyebrow__marker" aria-hidden="true"></i>Grades</h3>
+
+                            <div class="how-card how-card--pad">
+
+                                <h4 class="how-card__row">Round grade <span class="how-card__value">points per round</span></h4>
+
+                                <div class="how-scale" role="img" aria-label="F below 20 points, C from 20, B from 50, A from 70, S from 90, up to 133">
+
+                                    <div class="how-scale__bar"><span class="how-scale__seg grade-F" style="flex:20">F</span><span class="how-scale__seg grade-C" style="flex:30">C</span><span class="how-scale__seg grade-B" style="flex:20">B</span><span class="how-scale__seg grade-A" style="flex:20">A</span><span class="how-scale__seg grade-S" style="flex:43">S</span></div>
+
+                                    <div class="how-scale__labels"><span class="is-start" style="--at:0.00%">0</span><span class="" style="--at:15.04%">20</span><span class="" style="--at:37.59%">50</span><span class="" style="--at:52.63%">70</span><span class="" style="--at:67.67%">90</span><span class="is-end" style="--at:100.00%">133</span></div>
+
+                                </div>
+
+                                <p>Your game grade is the average of your three rounds.</p>
+
+                            </div>
+
+                        </section>
+
+                        <section class="how-section" aria-labelledby="how-modes">
+                            <h3 class="how-eyebrow" id="how-modes"><i class="ph ph-asterisk how-eyebrow__marker"
+                                    aria-hidden="true"></i>Two ways to play</h3>
+                            <div class="how-cards how-cards--two">
+                                <div class="how-card">
+                                    <i class="ph-fill ph-calendar-blank how-card__icon how-card__icon--daily"
+                                        aria-hidden="true"></i>
+                                    <h4>Daily Challenge</h4>
+                                    <p>Same three tempos for everyone, one run per day. Your total lands on
+                                        <strong>Today's game</strong> board.
+                                    </p>
+                                </div>
+                                <div class="how-card">
+                                    <i class="ph ph-shuffle how-card__icon" aria-hidden="true"></i>
+                                    <h4>Quick Play</h4>
+                                    <p>Fresh random tempos every time, no limit. Practice here, then take on the daily.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <p class="panel-credit">Conceived and developed by <a href="https://robysaavedra.com"
+                                target="_blank" rel="noopener">Roby Saavedra</a>.</p>
+                    </div>
                 </div>
             </div><!-- /home-scores-panel -->
 
@@ -166,7 +341,8 @@
             <div class="game-header">
                 <p class="game-info">Round <span id="current-round">1</span>/<span id="total-rounds">3</span></p>
                 <div class="game-timer-group">
-                    <span class="timer" id="timer" aria-label="Elapsed time" translate="no">0</span><span class="timer-unit" translate="no">s</span>
+                    <span class="timer" id="timer" aria-label="Elapsed time" translate="no">0</span><span
+                        class="timer-unit" translate="no">s</span>
                     <span class="timer-penalty" id="timer-penalty" aria-live="polite" aria-atomic="true"></span>
                 </div>
             </div>
@@ -206,8 +382,11 @@
         </div>
         <div id="high-score-input-area">
             <p class="hero-subtitle">You got a high score!</p>
-            <input type="text" id="player-name-check" class="input" placeholder="Enter Your Name">
-            <input type="url" id="player-url-check" class="input" placeholder="Enter Your URL (optional)">
+            <input type="text" id="player-name-check" class="input" placeholder="Enter Your Name" maxlength="24"
+                autocomplete="nickname" enterkeyhint="send">
+            <input type="url" id="player-url-check" class="input" placeholder="Enter Your URL (optional)"
+                maxlength="200" autocomplete="url" inputmode="url" enterkeyhint="send">
+            <p class="score-form-error" id="score-form-error" role="alert" aria-live="assertive"></p>
             <button id="submit-score-check" class="button">Submit Score
                 <i class="ph ph-check"></i>
             </button>
@@ -263,6 +442,7 @@
                             </button>
                         </div>
                         <p class="pb-status" id="pb-status"></p>
+                        <p class="pb-status rank-status" id="rank-status" hidden></p>
                     </div>
                     <button id="play-again" class="end-play-again-btn">
                         Play Again
@@ -298,30 +478,8 @@
         </div>
     </div>
 
-    <!-- Generic Modal -->
-    <div id="app-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
-        <div class="modal-content">
-            <div class="modal-body" id="app-modal-body"></div>
-            <div class="modal-footer">
-                <button type="button" class="modal-btn modal-btn--primary" id="app-modal-confirm">Got it</button>
-            </div>
-        </div>
-    </div>
-
     <!-- End Game Button -->
     <button id="end-game" class="end-game" aria-label="End game" style="display: none;"><i class="ph ph-x"></i></button>
-
-    <!-- Audio Permission Modal -->
-    <div id="audio-permission-modal" class="modal" role="dialog" aria-modal="true" aria-label="Enable audio">
-        <div class="modal-content">
-            <div class="modal-body">
-                <p>To enhance your experience, please enable audio.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="modal-btn modal-btn--primary" id="enable-audio">Enable audio</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Cookie Banner: essential vs optional (analytics). See /privacy.html -->
     <div id="cookie-banner" class="cookie-banner" style="display:none;" role="dialog"

@@ -638,8 +638,16 @@
   letter-spacing: -0.48px;
   line-height: 1.2;
   border-radius: 8px;
-  transition: all 0.2s ease-in-out;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.1s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+.end-home-link:active,
+.end-head-scores-btn:active {
+  transform: scale(0.96);
 }
 
 .end-home-link:hover > i {
@@ -777,5 +785,14 @@
 }
 
 .end-play-again-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+}
+
+.rank-status {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.rank-status[hidden] {
+  display: none;
 }
