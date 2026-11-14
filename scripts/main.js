@@ -520,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .addEventListener('click', () => switchEndScoreTab('today'));
 
   initHighScoreStickyTabs();
+  initGuessTyper();
 
   // Open scores panel by default on desktop (no entrance animation on first paint)
   if (!isMobileScoresLayout()) {
@@ -552,6 +553,41 @@ function showScreen(screenId, options = {}) {
       heading.focus({ preventScroll: true });
     }
   }
+}
+
+// ── How to Play: step 02 glyph types sample guesses ─────────────────────────
+/** Types/backspaces a few tempos in the mini field. Runs only while it's on screen. */
+function initGuessTyper() {
+  const el = document.querySelector('.how-guess__value');
+  if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const values = ['120', '96', '143', '108'];
+  let idx = 0;
+  let run = 0; // bumps on every start/stop so a stale loop exits on its next tick
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function loop(id) {
+    el.textContent = '';
+    await sleep(400);
+    while (id === run) {
+      const v = values[idx++ % values.length];
+      for (let i = 1; i <= v.length && id === run; i++) {
+        el.textContent = v.slice(0, i);
+        await sleep(120 + Math.random() * 80); // human-ish typing cadence
+      }
+      await sleep(1600);
+      for (let i = v.length - 1; i >= 0 && id === run; i--) {
+        el.textContent = v.slice(0, i);
+        await sleep(55);
+      }
+      await sleep(350);
+    }
+  }
+
+  new IntersectionObserver(([entry]) => {
+    run++;
+    if (entry.isIntersecting) void loop(run);
+    else el.textContent = '120';
+  }).observe(el);
 }
 
 // ── Game flow ───────────────────────────────────────────────────────────────

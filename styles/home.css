@@ -228,8 +228,9 @@
   flex-shrink: 0;
 }
 
-.home-scores-back:hover {
-  background-color: var(--hover-bg);
+.home-scores-back:hover i {
+  transform: translateX(-2px);
+  transition: transform 0.2s ease-in-out;
 }
 
 .home-scores-inner {
