@@ -14,7 +14,7 @@ const TIME_PENALTY_RATE = 0.5; // pts lost per second beyond TIME_PENALTY_AFTER
 export function calculateScoreBreakdown(actualBPM, guessedBPM, timeTaken) {
   const bpmDifference = Math.abs(actualBPM - guessedBPM);
 
-  if (bpmDifference > MAX_BPM_DIFFERENCE) {
+  if (bpmDifference >= MAX_BPM_DIFFERENCE) {
     return { accuracyScore: 0, speedBonus: 0, timePenalty: 0, finalScore: 0 };
   }
 

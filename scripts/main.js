@@ -193,7 +193,7 @@ function saveDailyResult(score, results, { inProgress = false } = {}) {
 /**
  * Accuracy-only emoji, so the row lines up with the "Off by" line beneath it
  * (grades also include the speed bonus, which made 🎯 mean "fast", not "exact").
- * 20+ off earns no accuracy points (beyond 20 the round scores zero — MAX_BPM_DIFFERENCE in gameLogic.js).
+ * 20+ off scores zero for the round (MAX_BPM_DIFFERENCE in gameLogic.js).
  */
 function accuracyEmoji(r) {
   if (!(r.guessedBPM > 0)) return '⬛';
