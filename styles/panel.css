@@ -760,7 +760,7 @@
 
 @media (max-width: 420px) {
   .how-step {
-    grid-template-columns: 20px 56px 1fr;
+    grid-template-columns: 72px 1fr;
     gap: 12px;
   }
 }
